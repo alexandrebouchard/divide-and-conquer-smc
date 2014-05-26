@@ -41,10 +41,11 @@ import com.google.common.collect.Maps;
 
 public class LogisticRegressionTest implements Runnable
 {
-  @Option public int N = 1000;
-  @Option public int T = 1000;
-  @Option public int D = 100;
-  @Option public  int K = 1000;
+  @Option public int nTrainInstances = 100;
+  @Option public int nTestInstances = 1000;
+  @Option public int dimensionality = 10;
+  @Option public  int nParticles = 10000;
+  
   @Option public Random rand = new Random(10);
   @Option public double inputSD = 1;
   @Option public double genParamSD = 1;
@@ -56,7 +57,9 @@ public class LogisticRegressionTest implements Runnable
   @Option public int nFullHMCIterations = 100;
   
   @Option public int rejuvAdaptIters = 100;
-  @Option public int rejuvHMCIters = 5;
+  @Option public int rejuvHMCIters = 10;
+  
+  @Option public int minBatchSize = 1;
   
   public static final FeatureExtractor<LabeledInstance<double[], Boolean>, String> extractor = new FeatureExtractor<LabeledInstance<double[], Boolean>, String>()
   {
@@ -87,7 +90,7 @@ public class LogisticRegressionTest implements Runnable
     
   };
   
-  public static String dimFeatName(int d) { return "dim-" + d; }
+  public static String dimFeatName(int d) { return "dim-" + d; } 
   public static final String interceptFeatName = "intercept";
   
   public static final Collection<Boolean> labels = Arrays.asList(true, false);
@@ -101,7 +104,7 @@ public class LogisticRegressionTest implements Runnable
     
     // generate true weights counter
     trueWeights = new Counter<String>();
-    for (int d = 0; d < D; d++)
+    for (int d = 0; d < dimensionality; d++)
       trueWeights.setCount(dimFeatName(d), genParamSD * rand.nextGaussian());
     trueWeights.setCount(interceptFeatName, 0.0);
     
@@ -111,7 +114,7 @@ public class LogisticRegressionTest implements Runnable
     
     List<Boolean> labels = Lists.newArrayList(trueClassif.getLabels(null));
     
-    for (int n = 0; n < N + T; n++)
+    for (int n = 0; n < nTrainInstances + nTestInstances; n++)
     {
       // generate some input array
       double [] x = nextLabeledInstance();
@@ -120,20 +123,17 @@ public class LogisticRegressionTest implements Runnable
       int index = Multinomial.sampleMultinomial(rand, logPrs);
       Boolean label = labels.get(index);
       LabeledInstance<double[], Boolean> datum = new LabeledInstance<double[], Boolean>(label, x);
-      (n < N ? trainingData : testingData).add(datum);
+      (n < nTrainInstances ? trainingData : testingData).add(datum);
     }
   }
   public Counter<String> trueWeights = null;
   public List<LabeledInstance<double[], Boolean>> trainingData, testingData;
   public MaxentClassifier<double[], Boolean, String> trueClassif;
   
-  
-  
-  
   public double[] nextLabeledInstance()
   {
-    double [] x = new double[D];
-    for (int d = 0; d < D; d++)
+    double [] x = new double[dimensionality];
+    for (int d = 0; d < dimensionality; d++)
       if (rand.nextDouble() > missingDataPr)
         x[d] = inputSD * rand.nextGaussian();
     return x;
@@ -155,7 +155,6 @@ public class LogisticRegressionTest implements Runnable
     generateData();
     return maxentOnFullData = MaxentClassifier.learnMaxentClassifier(baseMeasures, convert(trainingData), extractor);
   }
-  
   
   public void test(MaxentClassifier<double[], Boolean, String> tested)
   {
@@ -206,12 +205,12 @@ public class LogisticRegressionTest implements Runnable
 
     public ParticleApproximation()
     {
-      this.logWeights = new double[K];
-      this.atoms = new double[K][nFeats()];
+      this.logWeights = new double[nParticles];
+      this.atoms = new double[nParticles][nFeats()];
     }
   }
   
-  public int nFeats() { return D+1; }
+  public int nFeats() { return dimensionality+1; } // add one for intercept
   
   public ObjectiveFunction subsampledObjectiveFunction(int minIncl, int maxExcl, double regularivationVariance)
   {
@@ -247,8 +246,29 @@ public class LogisticRegressionTest implements Runnable
     
     // currently, we just initialize everything at zero, since rejuvenation steps can create particle diversity anyways
     // TODO: improve that? should be cheap ideally.
-    if (len == 1)
-      return result; 
+    if (len <= Math.max(1, minBatchSize))
+    {   
+//      ObjectiveAdaptor adaptor = new ObjectiveAdaptor(subsampledObjectiveFunction(minIncl, maxExcl, regularivationVariance)); 
+//      
+//      AHMC ahmc = AHMC.initializeAHMCWithLBFGS(rejuvAdaptIters, rejuvAdaptIters, adaptor, adaptor, nFeats());
+//      DoubleMatrix init = ahmc.sample(rand);
+//      
+//      int L = ahmc.getL();
+//      double epsilon = ahmc.getEpsilon();
+//      
+//      // do some HMC rejuvenation steps on each particle
+//      for (int k = 0; k < K; k++)
+//      {
+//        DoubleMatrix current = init;
+//        
+//        for (int i = 0; i < rejuvHMCIters; i++)
+//          current = HMC.doIter(rand, L, epsilon, current, adaptor, adaptor).next_q;
+//        
+//        result.atoms[k] = current.data.clone();
+//      }
+      
+      return result;
+    }
     
     int middle = minIncl + len / 2;
     
@@ -260,7 +280,7 @@ public class LogisticRegressionTest implements Runnable
       leftDataSplitLikelihood = new LikelihoodCalculator(minIncl, middle),
       rightDataSplitLikelihood= new LikelihoodCalculator(middle, maxExcl);
     
-    for (int k = 0; k < K; k++)
+    for (int k = 0; k < nParticles; k++)
     {
       double [] 
         leftParam  =  left.atoms[k],
@@ -290,9 +310,9 @@ public class LogisticRegressionTest implements Runnable
       System.out.println("ess = " + ess(result.logWeights) + ", level = " + level + ", interval = " + minIncl + ", " + maxExcl);
       
       // determine the indices (in old array) that get resampled, and the corresponding multiplicity
-      Counter<Integer> resampledCounts = multinomialSampling(rand, result.logWeights, K);
+      Counter<Integer> resampledCounts = multinomialSampling(rand, result.logWeights, nParticles);
       // use the indices to create a new atoms array
-      double [][] newAtoms = new double[K][nFeats()];
+      double [][] newAtoms = new double[nParticles][nFeats()];
       int currentIndex = 0;
       for (int resampledIndex : resampledCounts)
         for (int i = 0; i < resampledCounts.getCount(resampledIndex); i++)
@@ -300,33 +320,36 @@ public class LogisticRegressionTest implements Runnable
       result.atoms = newAtoms;
       
       // reset particle logWeights
-      double log1overK = -Math.log(K);
-      for (int k = 0; k < K; k++)
+      double log1overK = -Math.log(nParticles);
+      for (int k = 0; k < nParticles; k++)
         result.logWeights[k] = log1overK;
       
       // prepare for rejuvenation
-      ObjectiveAdaptor adaptor = new ObjectiveAdaptor(subsampledObjectiveFunction(minIncl, maxExcl, regularivationVariance)); 
-      
-      // do some AHMC adaptation on one of the particles to find epsilon, L for efficient HMCs
-      if (!Ls.containsKey(level))
+      if (rejuvAdaptIters > 0)
       {
-        AHMC ahmc = AHMC.initializeAHMCWithLBFGS(rejuvAdaptIters, rejuvAdaptIters, adaptor, adaptor, nFeats());
-        ahmc.sample(rand);
-        Ls.put(level, ahmc.getL());
-        epsilons.put(level, ahmc.getEpsilon());
-      }
-      int L = Ls.get(level);
-      double epsilon = epsilons.get(level);
-      
-      // do some HMC rejuvenation steps on each particle
-      for (int k = 0; k < K; k++)
-      {
-        DoubleMatrix current = new DoubleMatrix(result.atoms[k]);
+        ObjectiveAdaptor adaptor = new ObjectiveAdaptor(subsampledObjectiveFunction(minIncl, maxExcl, regularivationVariance)); 
         
-        for (int i = 0; i < rejuvHMCIters; i++)
-          current = HMC.doIter(rand, L, epsilon, current, adaptor, adaptor).next_q;
+        // do some AHMC adaptation on one of the particles to find epsilon, L for efficient HMCs
+        if (!Ls.containsKey(level))
+        {
+          AHMC ahmc = AHMC.initializeAHMCWithLBFGS(rejuvAdaptIters, rejuvAdaptIters, adaptor, adaptor, nFeats());
+          ahmc.sample(rand);
+          Ls.put(level, ahmc.getL());
+          epsilons.put(level, ahmc.getEpsilon());
+        }
+        int L = Ls.get(level);
+        double epsilon = epsilons.get(level);
         
-        result.atoms[k] = current.data.clone();
+        // do some HMC rejuvenation steps on each particle
+        for (int k = 0; k < nParticles; k++)
+        {
+          DoubleMatrix current = new DoubleMatrix(result.atoms[k]);
+          
+          for (int i = 0; i < rejuvHMCIters; i++)
+            current = HMC.doIter(rand, L, epsilon, current, adaptor, adaptor).next_q;
+          
+          result.atoms[k] = current.data.clone();
+        }
       }
     }
      
@@ -393,7 +416,7 @@ public class LogisticRegressionTest implements Runnable
       {
         System.out.println("iter " + i);
         output.write(interceptFeatName, "iteration", i, "value", current.get(maxent.getFeatureIndex(interceptFeatName)));
-        for (int d = 0; d < D; d++)
+        for (int d = 0; d < dimensionality; d++)
           output.write(dimFeatName(d), "iteration", i, "value", current.get(maxent.getFeatureIndex(dimFeatName(d))));
       }
     }
@@ -420,7 +443,7 @@ public class LogisticRegressionTest implements Runnable
     test(trueClassif);
     hmcOnFullData(maxent);
     System.out.println("Starting recursive method");
-    dcSMC(0, D, rand, 0);
+    dcSMC(0, nTrainInstances, rand, 0);
   }
       
   public static void main(String [] args)
