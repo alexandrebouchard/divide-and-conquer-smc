@@ -1,4 +1,4 @@
-package bayonet.classif;
+package lregression;
 
 
 import java.io.Serializable;

@@ -10,6 +10,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
+import lregression.FeatureExtractor;
+import lregression.HomogeneousBaseMeasures;
+import lregression.LabeledInstance;
+import lregression.MaxentClassifier;
+
 import org.jblas.DoubleMatrix;
 
 import utils.MultiVariateObj;
@@ -17,10 +22,6 @@ import utils.Objective;
 
 import com.google.common.collect.Lists;
 
-import bayonet.classif.FeatureExtractor;
-import bayonet.classif.HomogeneousBaseMeasures;
-import bayonet.classif.LabeledInstance;
-import bayonet.classif.MaxentClassifier;
 import bayonet.coda.CodaParser;
 import bayonet.coda.SimpleCodaPlots;
 import bayonet.distributions.Multinomial;

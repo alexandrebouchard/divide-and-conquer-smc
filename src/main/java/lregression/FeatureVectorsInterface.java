@@ -1,4 +1,4 @@
-package bayonet.classif;
+package lregression;
 
 import bayonet.math.SparseVector;
 import briefj.collections.Counter;

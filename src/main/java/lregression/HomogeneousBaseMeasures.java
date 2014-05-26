@@ -1,4 +1,4 @@
-package bayonet.classif;
+package lregression;
 
 import java.util.Collection;
 import java.util.Collections;
