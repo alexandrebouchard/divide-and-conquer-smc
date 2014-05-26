@@ -34,7 +34,7 @@ public class FeatureVectors<I,L,F> implements FeatureVectorsInterface<I,L>
    */
   private final Map<LabeledInstance<I,L>,SparseVector> featureVectors =
     new HashMap<LabeledInstance<I,L>, SparseVector>();
-  private final Indexer<F> indexer;
+  public final Indexer<F> indexer;
   private final FeatureExtractor<LabeledInstance<I,L>, F> extractor;
   private final  int dim;
   private final double [] regularizationFactors;

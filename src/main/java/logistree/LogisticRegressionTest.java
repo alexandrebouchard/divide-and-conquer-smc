@@ -26,6 +26,7 @@ import bayonet.coda.SimpleCodaPlots;
 import bayonet.distributions.Multinomial;
 import bayonet.opt.DifferentiableFunction;
 import briefj.BriefIO;
+import briefj.OutputManager;
 import briefj.collections.Counter;
 import briefj.opt.Option;
 import briefj.run.Mains;
@@ -35,14 +36,16 @@ import briefj.run.Results;
 
 public class LogisticRegressionTest implements Runnable
 {
-  @Option public int N = 10000;
+  @Option public int N = 1000;
   @Option public int T = 10000;
   @Option public int D = 100;
   @Option public Random rand = new Random(10);
-  @Option public double inputSD = 10;
+  @Option public double inputSD = 1;
   @Option public double genParamSD = 1;
   @Option public double missingDataPr = 0.9;
-//  @Option public double genDeterminize = 0.1;
+  
+  @Option public int thinning = 100;
+  @Option public int nFullHMCIterations = 100000;
   
   public static final FeatureExtractor<LabeledInstance<double[], Boolean>, String> extractor = new FeatureExtractor<LabeledInstance<double[], Boolean>, String>()
   {
@@ -113,6 +116,7 @@ public class LogisticRegressionTest implements Runnable
   public List<LabeledInstance<double[], Boolean>> trainingData, testingData;
   public MaxentClassifier<double[], Boolean, String> trueClassif;
   
+  
   public double[] nextLabeledInstance()
   {
     double [] x = new double[D];
@@ -135,6 +139,7 @@ public class LogisticRegressionTest implements Runnable
     generateData();
     return MaxentClassifier.learnMaxentClassifier(baseMeasures, convert(trainingData), extractor);
   }
+  
   
   public void test(MaxentClassifier<double[], Boolean, String> tested)
   {
@@ -178,6 +183,46 @@ public class LogisticRegressionTest implements Runnable
     }
   }
   
+  public void hmcOnFullData(MaxentClassifier<double[], Boolean, String> maxent)
+  {
+ // next step: try AHMC on that
+    File fullCSVFolder = Results.getFolderInResultFolder("full-hmc");
+    OutputManager output = new OutputManager();
+    output.setOutputFolder(fullCSVFolder);
+//    File outputCSV = Results.getFileInResultFolder("samples-full-hmc.csv");
+//    PrintWriter outputCSVWriter = BriefIO.output(outputCSV);
+    ObjectiveAdaptor adaptor = new ObjectiveAdaptor(maxent.objectiveFunction(convert(trainingData), 1.0));
+    AHMC ahmc = AHMC.initializeAHMCWithLBFGS(250, 250, adaptor, adaptor, D+1);
+    DoubleMatrix current = ahmc.sample(rand);
+    
+    for (int i = 0; i < nFullHMCIterations; i++)
+    {
+      
+      current = HMC.doIter(rand, ahmc.getL(), ahmc.getEpsilon(), current, adaptor, adaptor).next_q;
+      
+      if (i % thinning == 0)
+      {
+        System.out.println("iter " + i);
+        output.write(interceptFeatName, "iteration", i, "value", current.get(maxent.getFeatureIndex(interceptFeatName)));
+        for (int d = 0; d < D; d++)
+          output.write(dimFeatName(d), "iteration", i, "value", current.get(maxent.getFeatureIndex(dimFeatName(d))));
+      }
+      //output.write() //.println("" + i + "," + current.data[0]); //join(current.data, ","));
+    }
+//    outputCSVWriter.close();
+    output.close();
+    
+    File codaContents = Results.getFileInResultFolder("samples-full-hmc.coda");
+    File codaIndex = Results.getFileInResultFolder("samples-index-full-hmc.coda");
+    
+    CodaParser.CSVToCoda(codaIndex, codaContents, fullCSVFolder);
+    File outputPDF = Results.getFileInResultFolder("coda-plots-full-hmc.pdf");
+    SimpleCodaPlots plotter = new SimpleCodaPlots(codaContents, codaIndex);
+    plotter.toPDF(outputPDF);
+  }
+  
+//  public void train
+  
   public void run()
   {
     generateData();
@@ -188,64 +233,12 @@ public class LogisticRegressionTest implements Runnable
     test(maxent);
     System.out.println("With true weights:");
     test(trueClassif);
+    hmcOnFullData(maxent);
     
-    // next step: try AHMC on that
-    File outputCSV = Results.getFileInResultFolder("samples.csv");
-    PrintWriter outputCSVWriter = BriefIO.output(outputCSV);
-    ObjectiveAdaptor adaptor = new ObjectiveAdaptor(maxent.objectiveFunction(convert(trainingData), 1.0));
-    AHMC ahmc = AHMC.initializeAHMCWithLBFGS(250, 250, adaptor, adaptor, D+1);
-    DoubleMatrix current = ahmc.sample(rand);
-    
-    for (int i = 0; i < 10000; i++)
-    {
-      if (i % 100 == 0)
-        System.out.println("iter " + i);
-      current = HMC.doIter(rand, ahmc.getL(), ahmc.getEpsilon(), current, adaptor, adaptor).next_q;
-      outputCSVWriter.println("" + i + "," + current.data[0]); //join(current.data, ","));
-    }
-    outputCSVWriter.close();
-    
-    File codaContents = Results.getFileInResultFolder("samples.coda");
-    File codaIndex = Results.getFileInResultFolder("samples-index.coda");
-    
-    CodaParser.CSVToCoda(codaIndex, codaContents, Results.getResultFolder());
-    File outputPDF = Results.getFileInResultFolder("coda-plots.pdf");
-    SimpleCodaPlots plotter = new SimpleCodaPlots(codaContents, codaIndex);
-    plotter.toPDF(outputPDF);
   }
-  
-//  public String join(double [] data, String sep)
-//  {
-//    StringBuilder result = new StringBuilder();
-//    for (int i = 0; i < data.length; i++)
-//      result.append(data[i] + (i == data.length - 1? "" : sep));
-//    return result.toString();
-//  }
       
   public static void main(String [] args)
   {
     Mains.instrumentedRun(args, new LogisticRegressionTest());
-    
-    
-//    System.out.println(samples);
-    
-// // - training instances
-//    // create datums
-//    LabeledInstance<String[], String> datum1 = new LabeledInstance<String[], String>("cat", new String[]{"fuzzy", "claws", "small"});
-//    LabeledInstance<String[], String> datum2 = new LabeledInstance<String[], String>("bear", new String[]{"fuzzy", "claws", "big"});
-//    LabeledInstance<String[], String> datum3 = new LabeledInstance<String[], String>("cat", new String[]{"claws", "medium"});
-//    LabeledInstance<String[], String> datum4 = new LabeledInstance<String[], String>("cat", new String[]{"claws", "small"});
-//    Counter<LabeledInstance<String[],String>> training = new Counter<LabeledInstance<String[],String>>();
-//    training.incrementCount(datum1, 1.0);
-//    training.incrementCount(datum2, 1.0);
-//    training.incrementCount(datum3, 1.0);
-//    // simple feature extractor
-//
-//    
-//
-//    MaxentClassifier<String[], String, String> maxent =
-//      MaxentClassifier.learnMaxentClassifier(fbm, training, featureExtractor);
-//    System.out.println(maxent.getLabels(datum4.getInput()));
-//    System.out.println(Arrays.toString((maxent.logProb(datum4.getInput()))));
   }
 }

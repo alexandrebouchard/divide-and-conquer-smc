@@ -183,6 +183,12 @@ public final class MaxentClassifier<I,L,F> implements Serializable
   {
     return baseMeasures.support(input);
   }
+  
+  public int getFeatureIndex(F feat)
+  {
+    return ((FeatureVectors<I, L, F>) featureVectors).indexer.o2i(feat);
+  }
+  
   @Override
   public String toString()
   {
