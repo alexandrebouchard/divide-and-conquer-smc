@@ -4,49 +4,59 @@ import hmc.AHMC;
 import hmc.HMC;
 
 import java.io.File;
-import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import lregression.FeatureExtractor;
 import lregression.HomogeneousBaseMeasures;
 import lregression.LabeledInstance;
 import lregression.MaxentClassifier;
+import lregression.MaxentClassifier.ObjectiveFunction;
+
 
 import org.jblas.DoubleMatrix;
 
 import utils.MultiVariateObj;
 import utils.Objective;
-
-import com.google.common.collect.Lists;
-
 import bayonet.coda.CodaParser;
 import bayonet.coda.SimpleCodaPlots;
 import bayonet.distributions.Multinomial;
+import bayonet.math.NumericalUtils;
 import bayonet.opt.DifferentiableFunction;
-import briefj.BriefIO;
 import briefj.OutputManager;
 import briefj.collections.Counter;
 import briefj.opt.Option;
 import briefj.run.Mains;
 import briefj.run.Results;
 
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+
 
 
 public class LogisticRegressionTest implements Runnable
 {
   @Option public int N = 1000;
-  @Option public int T = 10000;
+  @Option public int T = 1000;
   @Option public int D = 100;
+  @Option public  int K = 1000;
   @Option public Random rand = new Random(10);
   @Option public double inputSD = 1;
   @Option public double genParamSD = 1;
   @Option public double missingDataPr = 0.9;
   
-  @Option public int thinning = 100;
-  @Option public int nFullHMCIterations = 100000;
+  @Option public double regularivationVariance = 1.0;
+  
+  @Option public int thinning = 10;
+  @Option public int nFullHMCIterations = 100;
+  
+  @Option public int rejuvAdaptIters = 100;
+  @Option public int rejuvHMCIters = 5;
   
   public static final FeatureExtractor<LabeledInstance<double[], Boolean>, String> extractor = new FeatureExtractor<LabeledInstance<double[], Boolean>, String>()
   {
@@ -118,6 +128,8 @@ public class LogisticRegressionTest implements Runnable
   public MaxentClassifier<double[], Boolean, String> trueClassif;
   
   
+  
+  
   public double[] nextLabeledInstance()
   {
     double [] x = new double[D];
@@ -135,10 +147,13 @@ public class LogisticRegressionTest implements Runnable
     return result;
   }
   
-  public MaxentClassifier<double[], Boolean, String> trainMaxentOnFullData()
+  public MaxentClassifier<double[], Boolean, String> maxentOnFullData; 
+  public MaxentClassifier<double[], Boolean, String> maxentOnFullData()
   {
+    if (maxentOnFullData != null)
+      return maxentOnFullData;
     generateData();
-    return MaxentClassifier.learnMaxentClassifier(baseMeasures, convert(trainingData), extractor);
+    return maxentOnFullData = MaxentClassifier.learnMaxentClassifier(baseMeasures, convert(trainingData), extractor);
   }
   
   
@@ -184,16 +199,189 @@ public class LogisticRegressionTest implements Runnable
     }
   }
   
+  public class ParticleApproximation
+  {
+    public double [] logWeights;
+    public double [][] atoms;
+
+    public ParticleApproximation()
+    {
+      this.logWeights = new double[K];
+      this.atoms = new double[K][nFeats()];
+    }
+  }
+  
+  public int nFeats() { return D+1; }
+  
+  public ObjectiveFunction subsampledObjectiveFunction(int minIncl, int maxExcl, double regularivationVariance)
+  {
+    MaxentClassifier<double[], Boolean, String> auxiliary =  maxentOnFullData();
+    return auxiliary.objectiveFunction(convert(trainingData.subList(minIncl, maxExcl)), regularivationVariance);
+  }
+  
+  public class LikelihoodCalculator
+  {
+    private final ObjectiveFunction auxiliaryObjective;
+    
+    public LikelihoodCalculator(int minIncl, int maxExcl)
+    {
+      // we set positive infinity to the variance to get rid of the reg. term
+      this.auxiliaryObjective = subsampledObjectiveFunction(minIncl, maxExcl, Double.POSITIVE_INFINITY);
+    }
+    public double logLikelihood(double [] parameters)
+    {
+      return - auxiliaryObjective.valueAt(parameters);
+    }
+  }
+  
+  private Map<Integer,Integer > 
+    Ls = Maps.newHashMap();
+  private Map<Integer, Double>
+    epsilons = Maps.newHashMap();
+  
+  
+  public ParticleApproximation dcSMC(int minIncl, int maxExcl, Random rand, int level)
+  {
+    ParticleApproximation result = new ParticleApproximation();
+    int len = maxExcl - minIncl;
+    
+    // currently, we just initialize everything at zero, since rejuvenation steps can create particle diversity anyways
+    // TODO: improve that? should be cheap ideally.
+    if (len == 1)
+      return result; 
+    
+    int middle = minIncl + len / 2;
+    
+    ParticleApproximation 
+      left = dcSMC(minIncl, middle, rand, level + 1),
+      right= dcSMC(middle, maxExcl, rand, level + 1);
+    
+    LikelihoodCalculator 
+      leftDataSplitLikelihood = new LikelihoodCalculator(minIncl, middle),
+      rightDataSplitLikelihood= new LikelihoodCalculator(middle, maxExcl);
+    
+    for (int k = 0; k < K; k++)
+    {
+      double [] 
+        leftParam  =  left.atoms[k],
+        rightParam = right.atoms[k];
+      
+      double 
+        logLR = rightDataSplitLikelihood.logLikelihood(leftParam)  - rightDataSplitLikelihood.logLikelihood(rightParam),
+        logRL = leftDataSplitLikelihood .logLikelihood(rightParam) - leftDataSplitLikelihood .logLikelihood(leftParam);
+      
+      double [] samplingArray = new double[]{ logLR, logRL };
+      Multinomial.expNormalize(samplingArray);
+      int sampled = Multinomial.sampleMultinomial(rand, samplingArray);
+      
+      result.atoms[k] = sampled == 0 ? left.atoms[k] : right.atoms[k];
+      result.logWeights[k] = NumericalUtils.logAdd(logLR, logRL);
+    }
+    
+    // TODO: update Z estimate
+    
+    // print ESS
+    
+    // currently: always resample, do adaptive resampling schemes later if needed
+    boolean resamplingNeeded = true;
+    if (resamplingNeeded)
+    {
+      Multinomial.expNormalize(result.logWeights);
+      System.out.println("ess = " + ess(result.logWeights) + ", level = " + level + ", interval = " + minIncl + ", " + maxExcl);
+      
+      // determine the indices (in old array) that get resampled, and the corresponding multiplicity
+      Counter<Integer> resampledCounts = multinomialSampling(rand, result.logWeights, K);
+      // use the indices to create a new atoms array
+      double [][] newAtoms = new double[K][nFeats()];
+      int currentIndex = 0;
+      for (int resampledIndex : resampledCounts)
+        for (int i = 0; i < resampledCounts.getCount(resampledIndex); i++)
+          newAtoms[currentIndex++] = result.atoms[resampledIndex];
+      result.atoms = newAtoms;
+      
+      // reset particle logWeights
+      double log1overK = -Math.log(K);
+      for (int k = 0; k < K; k++)
+        result.logWeights[k] = log1overK;
+      
+      // prepare for rejuvenation
+      ObjectiveAdaptor adaptor = new ObjectiveAdaptor(subsampledObjectiveFunction(minIncl, maxExcl, regularivationVariance)); 
+      
+      // do some AHMC adaptation on one of the particles to find epsilon, L for efficient HMCs
+      if (!Ls.containsKey(level))
+      {
+        AHMC ahmc = AHMC.initializeAHMCWithLBFGS(rejuvAdaptIters, rejuvAdaptIters, adaptor, adaptor, nFeats());
+        ahmc.sample(rand);
+        Ls.put(level, ahmc.getL());
+        epsilons.put(level, ahmc.getEpsilon());
+      }
+      int L = Ls.get(level);
+      double epsilon = epsilons.get(level);
+      
+      // do some HMC rejuvenation steps on each particle
+      for (int k = 0; k < K; k++)
+      {
+        DoubleMatrix current = new DoubleMatrix(result.atoms[k]);
+        
+        for (int i = 0; i < rejuvHMCIters; i++)
+          current = HMC.doIter(rand, L, epsilon, current, adaptor, adaptor).next_q;
+        
+        result.atoms[k] = current.data.clone();
+      }
+    }
+     
+    return result;
+  }
+  
+  public static Counter<Integer> multinomialSampling(Random rand, double [] w, int nSamples)
+  {
+    List<Double> darts = new ArrayList<Double>(nSamples);
+    for (int n = 0; n < nSamples; n++)
+      darts.add(rand.nextDouble());
+    Collections.sort(darts);
+    Counter<Integer> result = new Counter<Integer>();
+    double sum = 0.0;
+    int nxtDartIdx = 0;
+    for (int i = 0; i < w.length; i++)
+    {
+      final double curLen = w[i];
+      if (curLen < 0 - NumericalUtils.THRESHOLD)
+        throw new RuntimeException();
+      final double right = sum + curLen;
+      
+      for (int dartIdx = nxtDartIdx; dartIdx < darts.size(); dartIdx++)
+        if (darts.get(dartIdx) < right)
+        {
+          result.incrementCount(i, 1.0);
+          nxtDartIdx++;
+        }
+        else 
+          break;
+      sum = right;
+    }
+    if (Double.isNaN(sum))
+      throw new RuntimeException();
+    NumericalUtils.checkIsClose(1.0, sum);
+    if (result.totalCount() != nSamples)
+      throw new RuntimeException();
+    return result;
+  }
+  
+  public static double ess(double [] ws)
+  {
+    NumericalUtils.checkIsClose(1.0, Multinomial.getNormalization(ws));
+    double sumOfSqr = 0.0;
+    for (double w : ws) sumOfSqr+=w*w;
+    return 1.0/sumOfSqr;
+  }
+  
   public void hmcOnFullData(MaxentClassifier<double[], Boolean, String> maxent)
   {
- // next step: try AHMC on that
     File fullCSVFolder = Results.getFolderInResultFolder("full-hmc");
     OutputManager output = new OutputManager();
     output.setOutputFolder(fullCSVFolder);
-//    File outputCSV = Results.getFileInResultFolder("samples-full-hmc.csv");
-//    PrintWriter outputCSVWriter = BriefIO.output(outputCSV);
     ObjectiveAdaptor adaptor = new ObjectiveAdaptor(maxent.objectiveFunction(convert(trainingData), 1.0));
-    AHMC ahmc = AHMC.initializeAHMCWithLBFGS(250, 250, adaptor, adaptor, D+1);
+    AHMC ahmc = AHMC.initializeAHMCWithLBFGS(250, 250, adaptor, adaptor, nFeats());
     DoubleMatrix current = ahmc.sample(rand);
     
     for (int i = 0; i < nFullHMCIterations; i++)
@@ -208,9 +396,7 @@ public class LogisticRegressionTest implements Runnable
         for (int d = 0; d < D; d++)
           output.write(dimFeatName(d), "iteration", i, "value", current.get(maxent.getFeatureIndex(dimFeatName(d))));
       }
-      //output.write() //.println("" + i + "," + current.data[0]); //join(current.data, ","));
     }
-//    outputCSVWriter.close();
     output.close();
     
     File codaContents = Results.getFileInResultFolder("samples-full-hmc.coda");
@@ -222,20 +408,19 @@ public class LogisticRegressionTest implements Runnable
     plotter.toPDF(outputPDF);
   }
   
-//  public void train
-  
   public void run()
   {
     generateData();
     System.out.println(trueWeights);
-    MaxentClassifier<double[], Boolean, String> maxent = trainMaxentOnFullData();
+    MaxentClassifier<double[], Boolean, String> maxent = maxentOnFullData();
     System.out.println(maxent.weights());
     System.out.println("Learned:");
     test(maxent);
     System.out.println("With true weights:");
     test(trueClassif);
     hmcOnFullData(maxent);
-    
+    System.out.println("Starting recursive method");
+    dcSMC(0, D, rand, 0);
   }
       
   public static void main(String [] args)

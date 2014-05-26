@@ -61,7 +61,7 @@ public final class MaxentClassifier<I,L,F> implements Serializable
    * dimensionality of the feature vectors depend on the training data (via
    * the number of observed active features)
    */
-  private MaxentClassifier(
+  public MaxentClassifier(
       final BaseMeasures<I, L> baseMeasures,
       final Set<LabeledInstance<I, L>> data, 
       final FeatureExtractor<LabeledInstance<I,L>, F> extractor,
