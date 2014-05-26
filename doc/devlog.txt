@@ -1,0 +1,21 @@
+Key generating settings:
+
+  @Option public int N = 100000;
+  @Option public int T = 10000;
+  @Option public int D = 100;
+  @Option public Random rand = new Random(10);
+  @Option public double inputSD = 10;
+  @Option public double genParamSD = 1;
+  @Option public double missingDataPr = 0.9;
+
+
+
+Another one that is a bit more challengin:
+
+  @Option public int N = 100000;
+  @Option public int T = 10000;
+  @Option public int D = 100;
+  @Option public Random rand = new Random(20);
+  @Option public double inputSD = 5;
+  @Option public double genParamSD = 1;
+  @Option public double missingDataPr = 0.99;

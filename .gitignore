@@ -1,0 +1,8 @@
+.settings
+.gradle
+.classpath
+.project
+bin
+bin/logistree
+bin/logistree/Main.class
+logistree
