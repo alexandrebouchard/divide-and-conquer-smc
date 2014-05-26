@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Simple script to run the java program from the eclipse-generated .classpath file
+
+REP_ROOT=/Users/bouchard/w/logistree
+
+CLASSPATH=${REP_ROOT}/bin/:`cat ${REP_ROOT}/.classpath | grep jar | sed 's/.* path..//' | sed 's/\".*//' | tr "\n" ":"`
+
+
+java -Xmx2g -cp ${CLASSPATH} logistree.Main "$@"
