@@ -3,7 +3,10 @@ package multilevel;
 import java.io.File;
 import java.util.Random;
 
+import multilevel.MultiLevelDcSmc.MultiLevelDcSmcOptions;
+
 import briefj.opt.Option;
+import briefj.opt.OptionSet;
 import briefj.run.Mains;
 
 
@@ -11,7 +14,7 @@ import briefj.run.Mains;
 public class MultiLevelMain implements Runnable
 {
   @Option public File inputData = new File("data/processed/preprocessedNYSData.csv");
-  @Option public int nParticles = 100000;
+  @OptionSet(name = "dc") public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
   @Option public Random random = new Random(1);
 
   /**
@@ -26,7 +29,7 @@ public class MultiLevelMain implements Runnable
   public void run()
   {
     MultiLevelDataset dataset = new MultiLevelDataset(inputData);
-    MultiLevelDcSmc smc = new MultiLevelDcSmc(dataset, nParticles);
+    MultiLevelDcSmc smc = new MultiLevelDcSmc(dataset, dcsmcOption);
     smc.sample(random);
   }
 

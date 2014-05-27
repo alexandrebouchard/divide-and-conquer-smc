@@ -13,6 +13,7 @@ import bayonet.distributions.Random2RandomGenerator;
 import bayonet.math.SpecialFunctions;
 import briefj.OutputManager;
 import briefj.collections.Counter;
+import briefj.opt.Option;
 
 import com.google.common.collect.Lists;
 
@@ -22,17 +23,25 @@ public class MultiLevelDcSmc
 {
   private final MultiLevelDataset dataset;
   private final int nParticles;
+  private final double relativeEssThreshold;
   private final OutputManager output = new OutputManager();
+  
+  public static class MultiLevelDcSmcOptions
+  {
+    @Option public double relativeEssThreshold = 1.0;
+    @Option public int nParticles = 10000;
+  }
   
   public void sample(Random rand)
   {
     recurse(rand, dataset.getRoot());
   }
   
-  public MultiLevelDcSmc(MultiLevelDataset dataset, int nParticles)
+  public MultiLevelDcSmc(MultiLevelDataset dataset, MultiLevelDcSmcOptions options)
   {
     this.dataset = dataset;
-    this.nParticles = nParticles;
+    this.nParticles = options.nParticles;
+    this.relativeEssThreshold = options.relativeEssThreshold;
   }
 
   public static class ParticleApproximation
@@ -121,7 +130,10 @@ public class MultiLevelDcSmc
     output.flush();
     
     // perform resampling
-    return resample(rand, result, nParticles);
+    if (relativeEss < relativeEssThreshold)
+      result = resample(rand, result, nParticles);
+    
+    return result;
   }
   
   private static ParticleApproximation resample(Random rand, ParticleApproximation beforeResampling, int nParticles)
