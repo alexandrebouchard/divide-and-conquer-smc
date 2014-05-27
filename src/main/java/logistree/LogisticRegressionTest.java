@@ -311,7 +311,7 @@ public class LogisticRegressionTest implements Runnable
       System.out.println("ess = " + Utils.ess(result.logWeights) + ", level = " + level + ", interval = " + minIncl + ", " + maxExcl);
       
       // determine the indices (in old array) that get resampled, and the corresponding multiplicity
-      Counter<Integer> resampledCounts = multinomialSampling(rand, result.logWeights, nParticles);
+      Counter<Integer> resampledCounts = Utils.multinomialSampling(rand, result.logWeights, nParticles);
       // use the indices to create a new atoms array
       double [][] newAtoms = new double[nParticles][nFeats()];
       int currentIndex = 0;
@@ -357,39 +357,7 @@ public class LogisticRegressionTest implements Runnable
     return result;
   }
   
-  public static Counter<Integer> multinomialSampling(Random rand, double [] w, int nSamples)
-  {
-    List<Double> darts = new ArrayList<Double>(nSamples);
-    for (int n = 0; n < nSamples; n++)
-      darts.add(rand.nextDouble());
-    Collections.sort(darts);
-    Counter<Integer> result = new Counter<Integer>();
-    double sum = 0.0;
-    int nxtDartIdx = 0;
-    for (int i = 0; i < w.length; i++)
-    {
-      final double curLen = w[i];
-      if (curLen < 0 - NumericalUtils.THRESHOLD)
-        throw new RuntimeException();
-      final double right = sum + curLen;
-      
-      for (int dartIdx = nxtDartIdx; dartIdx < darts.size(); dartIdx++)
-        if (darts.get(dartIdx) < right)
-        {
-          result.incrementCount(i, 1.0);
-          nxtDartIdx++;
-        }
-        else 
-          break;
-      sum = right;
-    }
-    if (Double.isNaN(sum))
-      throw new RuntimeException();
-    NumericalUtils.checkIsClose(1.0, sum);
-    if (result.totalCount() != nSamples)
-      throw new RuntimeException();
-    return result;
-  }
+
   
 
   
