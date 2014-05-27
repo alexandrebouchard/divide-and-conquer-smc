@@ -4,9 +4,12 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
+import org.apache.commons.math3.distribution.BetaDistribution;
+
 
 import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
+import bayonet.distributions.Random2RandomGenerator;
 import bayonet.math.SpecialFunctions;
 import briefj.OutputManager;
 import briefj.collections.Counter;
@@ -153,12 +156,15 @@ public class MultiLevelDcSmc
     ParticleApproximation result = new ParticleApproximation(nParticles);
     Datum observation = dataset.getDatum(node);
     
+    // use a beta distributed proposal
+    BetaDistribution beta = new BetaDistribution(new Random2RandomGenerator(rand), 1 + observation.numberOfSuccesses, 1 + (observation.numberOfTrials - observation.numberOfSuccesses), BetaDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY);
     for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
     {
-      double unif = rand.nextDouble();
-      double logPi = logBinomialPr(observation.numberOfTrials, observation.numberOfTrials, unif);
-      double transformed = transform(unif);
-      double logWeight = logPi;
+      double proposed = beta.sample(); //rand.nextDouble();
+      double logProposed = beta.density(proposed);
+      double logPi = logBinomialPr(observation.numberOfTrials, observation.numberOfSuccesses, proposed);
+      double transformed = transform(proposed);
+      double logWeight = logPi - logProposed;
       BrownianModelCalculator leaf = BrownianModelCalculator.observation(new double[]{transformed}, 1, false);
       
       result.particles[particleIndex] = new Particle(leaf);
