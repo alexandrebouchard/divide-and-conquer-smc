@@ -13,7 +13,9 @@ import briefj.run.Mains;
 
 public class MultiLevelMain implements Runnable
 {
-  @Option public File inputData = new File("data/tiny.csv"); //processed/preprocessedNYSData.csv");
+  @Option public File inputData = 
+//    new File("data/small.csv"); 
+     new File("processed/preprocessedNYSData.csv");
   @OptionSet(name = "dc") public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
   @Option public Random random = new Random(1);
 

@@ -30,10 +30,12 @@ public class MultiLevelDcSmc
   private final MultiLevelDataset dataset;
   private final int nParticles;
   private final OutputManager output = new OutputManager();
+  private final MultiLevelDcSmcOptions options;
   
   public static class MultiLevelDcSmcOptions
   {
-    @Option public int nParticles = 10000;
+    @Option public int nParticles = 1000;
+    @Option public int levelCutOffForOutput = 4;
   }
   
   public void sample(Random rand)
@@ -45,6 +47,7 @@ public class MultiLevelDcSmc
   {
     this.dataset = dataset;
     this.nParticles = options.nParticles;
+    this.options = options;
   }
 
   public static class ParticleApproximation
@@ -137,19 +140,22 @@ public class MultiLevelDcSmc
     result = resample(rand, result, nParticles);
     
     // report statistics on mean
-    int nPlotPoints = 10000;
-    double [] meanSamples = new double[nPlotPoints];
-    double [] varianceSamples = children.isEmpty() ? null : new double[nPlotPoints];
-    for (int i = 0; i < nPlotPoints; i++)
+    if (node.level < options.levelCutOffForOutput)
     {
-      Particle p = result.particles[i];
-      meanSamples[i] = inverseTransform(Normal.generate(rand, p.message.message[0], p.message.messageVariance));
+      int nPlotPoints = 10000;
+      double [] meanSamples = new double[nPlotPoints];
+      double [] varianceSamples = children.isEmpty() ? null : new double[nPlotPoints];
+      for (int i = 0; i < nPlotPoints; i++)
+      {
+        Particle p = result.particles[i];
+        meanSamples[i] = inverseTransform(Normal.generate(rand, p.message.message[0], p.message.messageVariance));
+        if (varianceSamples != null)
+          varianceSamples[i] = p.variance;
+      }
+      new PlotHistogram(meanSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_logisticMean.pdf"));
       if (varianceSamples != null)
-        varianceSamples[i] = p.variance;
+        new PlotHistogram(varianceSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_var.pdf"));
     }
-    new PlotHistogram(meanSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_logisticMean.pdf"));
-    if (varianceSamples != null)
-      new PlotHistogram(varianceSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_var.pdf"));
     
     return result;
   }
