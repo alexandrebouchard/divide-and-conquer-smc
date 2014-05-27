@@ -54,7 +54,7 @@ public class PreprocessNYSchoolData implements Runnable
         String DBN = line.get("DBN");
         if (DBN.length() != 6)
           throw new RuntimeException();
-        int district = Integer.parseInt(DBN.substring(2));
+        int district = Integer.parseInt(DBN.substring(0,2));
         String county = counties.get(DBN.substring(2, 3)).toString();
         int school = Integer.parseInt(DBN.substring(3, 6));
         int grade = Integer.parseInt(line.get("Grade"));
@@ -71,7 +71,7 @@ public class PreprocessNYSchoolData implements Runnable
       }
     catch (Exception e)
     {
-      errors.incrementCount(e.getMessage(), 1.0);
+      errors.incrementCount("" + e, 1.0);
     }
     
     System.out.println("There were errors in " + ((int) errors.totalCount()) + " out of " + totalNLine);
