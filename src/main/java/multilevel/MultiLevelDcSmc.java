@@ -41,6 +41,7 @@ public class MultiLevelDcSmc
     @Option public int levelCutOffForOutput = Integer.MAX_VALUE;
     @Option public double variancePriorRate = 10.0;
     @Option public boolean useTransform = false;
+    @Option public boolean useBetaProposal = true;
   }
   
   public void sample(Random rand)
@@ -214,11 +215,19 @@ public class MultiLevelDcSmc
     Datum observation = dataset.getDatum(node);
     
     // use a beta distributed proposal
-    BetaDistribution beta = new BetaDistribution(new Random2RandomGenerator(rand), 1 + observation.numberOfSuccesses, 1 + (observation.numberOfTrials - observation.numberOfSuccesses), BetaDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY);
+    BetaDistribution beta = options.useBetaProposal  ? 
+        new BetaDistribution(new Random2RandomGenerator(rand), 
+            1 + observation.numberOfSuccesses, 
+            1 + (observation.numberOfTrials - observation.numberOfSuccesses), BetaDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY) :
+        null;
     for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
     {
-      double proposed =  beta.sample();
-      double logProposed = Math.log(beta.density(proposed));
+      double proposed = options.useBetaProposal ? 
+        beta.sample() :
+        rand.nextDouble();
+      double logProposed = options.useBetaProposal ? 
+        Math.log(beta.density(proposed)) : 
+        0.0;
       double logPi = logBinomialPr(observation.numberOfTrials, observation.numberOfSuccesses, proposed);
       double transformed = transform(proposed);
       double logWeight = logPi - logProposed;
@@ -228,6 +237,7 @@ public class MultiLevelDcSmc
       result.probabilities[particleIndex] = logWeight;
     }
     
+    // TODO: note expnorm needs to be done by the caller, could lead to problem later
     return result;
   }
   

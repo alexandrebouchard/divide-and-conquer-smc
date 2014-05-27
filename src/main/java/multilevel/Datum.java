@@ -11,4 +11,13 @@ public class Datum
     this.numberOfTrials = numberOfTrials;
     this.numberOfSuccesses = numberOfSuccesses;
   }
+
+  @Override
+  public String toString()
+  {
+    return "Datum [numberOfTrials=" + numberOfTrials + ", numberOfSuccesses="
+        + numberOfSuccesses + "]";
+  }
+  
+  
 }
