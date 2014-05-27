@@ -4,10 +4,10 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
-import org.apache.commons.math3.distribution.BinomialDistribution;
 
 import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
+import bayonet.math.SpecialFunctions;
 import briefj.OutputManager;
 import briefj.collections.Counter;
 
@@ -156,8 +156,7 @@ public class MultiLevelDcSmc
     for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
     {
       double unif = rand.nextDouble();
-      BinomialDistribution bm = new BinomialDistribution(observation.numberOfTrials, unif);
-      double logPi = Math.log(bm.getProbabilityOfSuccess());
+      double logPi = logBinomialPr(observation.numberOfTrials, observation.numberOfTrials, unif);
       double transformed = transform(unif);
       double logWeight = logPi;
       BrownianModelCalculator leaf = BrownianModelCalculator.observation(new double[]{transformed}, 1, false);
@@ -167,6 +166,15 @@ public class MultiLevelDcSmc
     }
     
     return result;
+  }
+  
+  private double logBinomialPr(int nTrials, int nSuccesses, double prOfSuccess)
+  {
+    if (nTrials < 0 || nSuccesses < 0 || nSuccesses > nTrials || prOfSuccess < 0 || prOfSuccess > 1)
+      throw new RuntimeException();
+    return SpecialFunctions.logBinomial(nTrials, nSuccesses) 
+      + nSuccesses             * Math.log(prOfSuccess) 
+      + (nTrials - nSuccesses) * Math.log(1.0 - prOfSuccess);
   }
 
   private double transform(double unif)
