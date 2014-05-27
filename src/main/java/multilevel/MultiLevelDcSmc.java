@@ -23,12 +23,10 @@ public class MultiLevelDcSmc
 {
   private final MultiLevelDataset dataset;
   private final int nParticles;
-  private final double relativeEssThreshold;
   private final OutputManager output = new OutputManager();
   
   public static class MultiLevelDcSmcOptions
   {
-    @Option public double relativeEssThreshold = 1.0;
     @Option public int nParticles = 10000;
   }
   
@@ -41,7 +39,6 @@ public class MultiLevelDcSmc
   {
     this.dataset = dataset;
     this.nParticles = options.nParticles;
-    this.relativeEssThreshold = options.relativeEssThreshold;
   }
 
   public static class ParticleApproximation
@@ -109,7 +106,7 @@ public class MultiLevelDcSmc
         weight += combined.logLikelihood();
         for (BrownianModelCalculator childCalculator : sampledCalculators)
           weight = weight - childCalculator.logLikelihood();
-        weight = weight - varianceRatio(variance);
+        weight = weight + varianceRatio(variance);
         
         // add both qts to result
         result.particles[particleIndex] = new Particle(combined, variance);
@@ -130,8 +127,7 @@ public class MultiLevelDcSmc
     output.flush();
     
     // perform resampling
-    if (relativeEss < relativeEssThreshold)
-      result = resample(rand, result, nParticles);
+    result = resample(rand, result, nParticles);
     
     return result;
   }
