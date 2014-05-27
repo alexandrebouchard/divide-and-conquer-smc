@@ -9,6 +9,7 @@ import org.apache.commons.math3.distribution.BinomialDistribution;
 import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
 import briefj.OutputManager;
+import briefj.collections.Counter;
 
 import com.google.common.collect.Lists;
 
@@ -82,14 +83,18 @@ public class MultiLevelDcSmc
         // sample a variance
         double variance = sampleVariance(rand);
         
-        // sample from each child
-//        List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
-//        for (ParticleApproximation childApprox : childrenApproximations)
-//          sampledCalculators.add(childApprox.sample(rand).message);
+        // build product sample from children
+        double weight = 0.0;
+        List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
+        for (ParticleApproximation childApprox : childrenApproximations)
+        {
+          sampledCalculators.add(childApprox.particles[particleIndex].message);
+          weight += childApprox.probabilities[particleIndex];
+        }
         
         // compute weight
         BrownianModelCalculator combined = BrownianModelCalculator.combine(sampledCalculators, variance);
-        double weight = combined.logLikelihood();
+        weight += combined.logLikelihood();
         for (BrownianModelCalculator childCalculator : sampledCalculators)
           weight = weight - childCalculator.logLikelihood();
         weight = weight - varianceRatio(variance);
@@ -113,9 +118,24 @@ public class MultiLevelDcSmc
     output.flush();
     
     // perform resampling
+    return resample(rand, result, nParticles);
+  }
+  
+  private static ParticleApproximation resample(Random rand, ParticleApproximation beforeResampling, int nParticles)
+  {
+    ParticleApproximation resampledResult = new ParticleApproximation(nParticles);
+    Counter<Integer> resampledCounts = SMCUtils.multinomialSampling(rand, beforeResampling.probabilities, nParticles);
+    // use the indices to create a new atoms array
+    int currentIndex = 0;
+    for (int resampledIndex : resampledCounts)
+      for (int i = 0; i < resampledCounts.getCount(resampledIndex); i++)
+        resampledResult.particles[currentIndex++] = beforeResampling.particles[resampledIndex];
     
-    
-    return result;
+    // reset particle logWeights
+    double pr1overK = 1.0/nParticles;
+    for (int k = 0; k < nParticles; k++)
+      resampledResult.probabilities[k] = pr1overK;
+    return resampledResult;
   }
 
   private double varianceRatio(double variance)
