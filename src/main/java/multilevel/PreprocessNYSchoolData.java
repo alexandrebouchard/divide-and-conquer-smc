@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Maps;
@@ -14,7 +13,7 @@ import briefj.BriefIO;
 import briefj.collections.Counter;
 import briefj.opt.Option;
 import briefj.run.Mains;
-import briefj.tomove.Results;
+import briefj.run.Results;
 
 
 
