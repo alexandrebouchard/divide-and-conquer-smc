@@ -45,6 +45,6 @@ public class Node
   @Override
   public String toString()
   {
-    return "Level" + level + ":" + label + "]";
+    return  label + "(L" + level + ")";
   }
 }

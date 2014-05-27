@@ -13,11 +13,13 @@ import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
 import bayonet.math.SpecialFunctions;
 import bayonet.rplot.PlotHistogram;
+import briefj.BriefLists;
 import briefj.OutputManager;
 import briefj.collections.Counter;
 import briefj.opt.Option;
 import briefj.tomove.Results;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 
@@ -35,7 +37,7 @@ public class MultiLevelDcSmc
   
   public void sample(Random rand)
   {
-    recurse(rand, dataset.getRoot());
+    recurse(rand, Lists.newArrayList(dataset.getRoot()));
   }
   
   public MultiLevelDcSmc(MultiLevelDataset dataset, MultiLevelDcSmcOptions options)
@@ -75,8 +77,9 @@ public class MultiLevelDcSmc
     }
   }
   
-  private ParticleApproximation recurse(Random rand, Node node)
+  private ParticleApproximation recurse(Random rand, List<Node> path)
   {
+    Node node = BriefLists.last(path);
     Set<Node> children = dataset.getChildren(node);
     
     ParticleApproximation result;
@@ -88,7 +91,7 @@ public class MultiLevelDcSmc
       List<ParticleApproximation> childrenApproximations = Lists.newArrayList();
       
       for (Node child : children)
-        childrenApproximations.add(recurse(rand, child));
+        childrenApproximations.add(recurse(rand, BriefLists.concat(path,child)));
        
       for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
       {
@@ -133,7 +136,7 @@ public class MultiLevelDcSmc
     result = resample(rand, result, nParticles);
     
     // report statistics on mean
-    int nPlotPoints = 1000;
+    int nPlotPoints = 10000;
     double [] meanSamples = new double[nPlotPoints];
     for (int i = 0; i < nPlotPoints; i++)
     {
@@ -141,7 +144,7 @@ public class MultiLevelDcSmc
       meanSamples[i] = Normal.generate(rand, p.message.message[0], p.message.messageVariance);
     }
     PlotHistogram histogram = new PlotHistogram(meanSamples);
-    histogram.toPDF(Results.getFileInResultFolder("" + node.level + "_" + node.label + "_mean.pdf"));
+    histogram.toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_mean.pdf"));
     
     return result;
   }
@@ -182,8 +185,8 @@ public class MultiLevelDcSmc
     BetaDistribution beta = new BetaDistribution(new Random2RandomGenerator(rand), 1 + observation.numberOfSuccesses, 1 + (observation.numberOfTrials - observation.numberOfSuccesses), BetaDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY);
     for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
     {
-      double proposed = beta.sample(); //rand.nextDouble();
-      double logProposed = beta.density(proposed);
+      double proposed =  beta.sample();
+      double logProposed = Math.log(beta.density(proposed));
       double logPi = logBinomialPr(observation.numberOfTrials, observation.numberOfSuccesses, proposed);
       double transformed = transform(proposed);
       double logWeight = logPi - logProposed;
