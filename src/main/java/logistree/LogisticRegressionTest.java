@@ -17,6 +17,7 @@ import lregression.HomogeneousBaseMeasures;
 import lregression.LabeledInstance;
 import lregression.MaxentClassifier;
 import lregression.MaxentClassifier.ObjectiveFunction;
+import multilevel.Utils;
 
 
 import org.jblas.DoubleMatrix;
@@ -307,7 +308,7 @@ public class LogisticRegressionTest implements Runnable
     if (resamplingNeeded)
     {
       Multinomial.expNormalize(result.logWeights);
-      System.out.println("ess = " + ess(result.logWeights) + ", level = " + level + ", interval = " + minIncl + ", " + maxExcl);
+      System.out.println("ess = " + Utils.ess(result.logWeights) + ", level = " + level + ", interval = " + minIncl + ", " + maxExcl);
       
       // determine the indices (in old array) that get resampled, and the corresponding multiplicity
       Counter<Integer> resampledCounts = multinomialSampling(rand, result.logWeights, nParticles);
@@ -390,13 +391,7 @@ public class LogisticRegressionTest implements Runnable
     return result;
   }
   
-  public static double ess(double [] ws)
-  {
-    NumericalUtils.checkIsClose(1.0, Multinomial.getNormalization(ws));
-    double sumOfSqr = 0.0;
-    for (double w : ws) sumOfSqr+=w*w;
-    return 1.0/sumOfSqr;
-  }
+
   
   public void hmcOnFullData(MaxentClassifier<double[], Boolean, String> maxent)
   {

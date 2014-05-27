@@ -73,7 +73,7 @@ public class PreprocessNYSchoolData implements Runnable
       errors.incrementCount("" + e, 1.0);
     }
     
-    System.out.println("There were errors in " + ((int) errors.totalCount()) + " out of " + totalNLine);
+    System.out.println("There were errors in " + ((int) errors.totalCount()) + " out of " + totalNLine + " lines");
     System.out.println();
     System.out.println("Count\tError");
     for (String key : errors.keySet())

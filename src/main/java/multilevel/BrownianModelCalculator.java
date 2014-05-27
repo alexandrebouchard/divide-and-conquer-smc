@@ -14,7 +14,15 @@ public class BrownianModelCalculator
 {
   public static BrownianModelCalculator combine(List<BrownianModelCalculator> children, double variance)
   {
-    if (children.size() < 2) throw new RuntimeException("Supports only two or more children (the case nChildren == 1 can be computed analytically)");
+    if (children.size() == 0)
+      throw new RuntimeException();
+    
+    if (children.size() == 1)
+    {
+      BrownianModelCalculator current = children.get(0);
+      return new BrownianModelCalculator(current.message, current.messageVariance + variance, current.nsites, current.loglikelihood, current.resampleRoot);
+    }
+    
     LinkedList<BrownianModelCalculator> queue = Lists.newLinkedList(children);
     BrownianModelCalculator 
       first = queue.poll(),
