@@ -1,11 +1,14 @@
 package multilevel;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.math3.distribution.BetaDistribution;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 
 import bayonet.distributions.Exponential;
@@ -35,7 +38,9 @@ public class MultiLevelDcSmc
   public static class MultiLevelDcSmcOptions
   {
     @Option public int nParticles = 1000;
-    @Option public int levelCutOffForOutput = 4;
+    @Option public int levelCutOffForOutput = Integer.MAX_VALUE;
+    @Option public double variancePriorRate = 10.0;
+    @Option public boolean useTransform = false;
   }
   
   public void sample(Random rand)
@@ -48,6 +53,7 @@ public class MultiLevelDcSmc
     this.dataset = dataset;
     this.nParticles = options.nParticles;
     this.options = options;
+    output.setOutputFolder(Results.getResultFolder());
   }
 
   public static class ParticleApproximation
@@ -143,19 +149,34 @@ public class MultiLevelDcSmc
     if (node.level < options.levelCutOffForOutput)
     {
       int nPlotPoints = 10000;
+      DescriptiveStatistics meanStats = new DescriptiveStatistics();
       double [] meanSamples = new double[nPlotPoints];
       double [] varianceSamples = children.isEmpty() ? null : new double[nPlotPoints];
+      DescriptiveStatistics varStats = children.isEmpty() ? null : new DescriptiveStatistics();
       for (int i = 0; i < nPlotPoints; i++)
       {
-        Particle p = result.particles[i];
-        meanSamples[i] = inverseTransform(Normal.generate(rand, p.message.message[0], p.message.messageVariance));
+        Particle p = result.particles[i % nParticles];
+        double meanPoint = inverseTransform(Normal.generate(rand, p.message.message[0], p.message.messageVariance));
+        meanStats.addValue(meanPoint);
+        meanSamples[i] = meanPoint;
         if (varianceSamples != null)
+        {
           varianceSamples[i] = p.variance;
+          varStats.addValue(p.variance);
+        }
       }
-      new PlotHistogram(meanSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_logisticMean.pdf"));
+      File plotsFolder = Results.getFolderInResultFolder("histograms");
+      String pathStr = Joiner.on("-").join(path);
+      new PlotHistogram(meanSamples).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
+      output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
       if (varianceSamples != null)
-        new PlotHistogram(varianceSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_var.pdf"));
+      {
+        new PlotHistogram(varianceSamples).toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
+        output.printWrite("varStats", "path", pathStr, "varMean", varStats.getMean(), "varSD", varStats.getStandardDeviation());
+      }
+      output.flush();
     }
+    
     
     return result;
   }
@@ -184,7 +205,7 @@ public class MultiLevelDcSmc
 
   private double sampleVariance(Random rand)
   {
-    return Exponential.generate(rand, 1.0);
+    return Exponential.generate(rand, options.variancePriorRate );
   }
 
   private ParticleApproximation _leafParticleApproximation(Random rand, Node node)
@@ -221,11 +242,17 @@ public class MultiLevelDcSmc
 
   private double transform(double numberOnSimplex)
   {
-    return SpecialFunctions.logit(numberOnSimplex);
+    if (options.useTransform )
+      return SpecialFunctions.logit(numberOnSimplex);
+    else
+      return numberOnSimplex;
   }
   
   private double inverseTransform(double realNumber)
   {
-    return SpecialFunctions.logistic(realNumber);
+    if (options.useTransform)
+      return SpecialFunctions.logistic(realNumber);
+    else
+      return realNumber;
   }
 }
