@@ -83,9 +83,9 @@ public class MultiLevelDcSmc
         double variance = sampleVariance(rand);
         
         // sample from each child
-        List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
-        for (ParticleApproximation childApprox : childrenApproximations)
-          sampledCalculators.add(childApprox.sample(rand).message);
+//        List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
+//        for (ParticleApproximation childApprox : childrenApproximations)
+//          sampledCalculators.add(childApprox.sample(rand).message);
         
         // compute weight
         BrownianModelCalculator combined = BrownianModelCalculator.combine(sampledCalculators, variance);
@@ -107,10 +107,13 @@ public class MultiLevelDcSmc
     Multinomial.expNormalize(result.probabilities);
     
     // monitor ESS
-    double ess = Utils.ess(result.probabilities);
+    double ess = SMCUtils.ess(result.probabilities);
     double relativeEss = ess/nParticles;
     output.printWrite("ess", "level", node.level, "nodeLabel", node.label, "ess", ess, "relativeEss", relativeEss);
     output.flush();
+    
+    // perform resampling
+    
     
     return result;
   }

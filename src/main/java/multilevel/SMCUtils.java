@@ -11,7 +11,7 @@ import briefj.collections.Counter;
 
 
 
-public class Utils
+public class SMCUtils
 {
   public static double ess(double [] ws)
   {

@@ -17,7 +17,7 @@ import lregression.HomogeneousBaseMeasures;
 import lregression.LabeledInstance;
 import lregression.MaxentClassifier;
 import lregression.MaxentClassifier.ObjectiveFunction;
-import multilevel.Utils;
+import multilevel.SMCUtils;
 
 
 import org.jblas.DoubleMatrix;
@@ -308,10 +308,10 @@ public class LogisticRegressionTest implements Runnable
     if (resamplingNeeded)
     {
       Multinomial.expNormalize(result.logWeights);
-      System.out.println("ess = " + Utils.ess(result.logWeights) + ", level = " + level + ", interval = " + minIncl + ", " + maxExcl);
+      System.out.println("ess = " + SMCUtils.ess(result.logWeights) + ", level = " + level + ", interval = " + minIncl + ", " + maxExcl);
       
       // determine the indices (in old array) that get resampled, and the corresponding multiplicity
-      Counter<Integer> resampledCounts = Utils.multinomialSampling(rand, result.logWeights, nParticles);
+      Counter<Integer> resampledCounts = SMCUtils.multinomialSampling(rand, result.logWeights, nParticles);
       // use the indices to create a new atoms array
       double [][] newAtoms = new double[nParticles][nFeats()];
       int currentIndex = 0;
