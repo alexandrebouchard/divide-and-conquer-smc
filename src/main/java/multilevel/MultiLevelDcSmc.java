@@ -9,11 +9,14 @@ import org.apache.commons.math3.distribution.BetaDistribution;
 
 import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
+import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
 import bayonet.math.SpecialFunctions;
+import bayonet.rplot.PlotHistogram;
 import briefj.OutputManager;
 import briefj.collections.Counter;
 import briefj.opt.Option;
+import briefj.tomove.Results;
 
 import com.google.common.collect.Lists;
 
@@ -128,6 +131,17 @@ public class MultiLevelDcSmc
     
     // perform resampling
     result = resample(rand, result, nParticles);
+    
+    // report statistics on mean
+    int nPlotPoints = 1000;
+    double [] meanSamples = new double[nPlotPoints];
+    for (int i = 0; i < nPlotPoints; i++)
+    {
+      Particle p = result.particles[i];
+      meanSamples[i] = Normal.generate(rand, p.message.message[0], p.message.messageVariance);
+    }
+    PlotHistogram histogram = new PlotHistogram(meanSamples);
+    histogram.toPDF(Results.getFileInResultFolder("" + node.level + "_" + node.label + "_mean.pdf"));
     
     return result;
   }
