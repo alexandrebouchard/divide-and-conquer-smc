@@ -1,5 +1,6 @@
 package multilevel;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -17,7 +18,7 @@ import briefj.BriefLists;
 import briefj.OutputManager;
 import briefj.collections.Counter;
 import briefj.opt.Option;
-import briefj.tomove.Results;
+import briefj.run.Results;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -138,13 +139,17 @@ public class MultiLevelDcSmc
     // report statistics on mean
     int nPlotPoints = 10000;
     double [] meanSamples = new double[nPlotPoints];
+    double [] varianceSamples = children.isEmpty() ? null : new double[nPlotPoints];
     for (int i = 0; i < nPlotPoints; i++)
     {
       Particle p = result.particles[i];
-      meanSamples[i] = Normal.generate(rand, p.message.message[0], p.message.messageVariance);
+      meanSamples[i] = inverseTransform(Normal.generate(rand, p.message.message[0], p.message.messageVariance));
+      if (varianceSamples != null)
+        varianceSamples[i] = p.variance;
     }
-    PlotHistogram histogram = new PlotHistogram(meanSamples);
-    histogram.toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_mean.pdf"));
+    new PlotHistogram(meanSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_logisticMean.pdf"));
+    if (varianceSamples != null)
+      new PlotHistogram(varianceSamples).toPDF(Results.getFileInResultFolder(Joiner.on("-").join(path) + "_var.pdf"));
     
     return result;
   }
@@ -208,8 +213,13 @@ public class MultiLevelDcSmc
       + (nTrials - nSuccesses) * Math.log(1.0 - prOfSuccess);
   }
 
-  private double transform(double unif)
+  private double transform(double numberOnSimplex)
   {
-    return unif; // TODO: apply logistic here
+    return SpecialFunctions.logit(numberOnSimplex);
+  }
+  
+  private double inverseTransform(double realNumber)
+  {
+    return SpecialFunctions.logistic(realNumber);
   }
 }
