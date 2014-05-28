@@ -1,4 +1,4 @@
-package multilevel;
+package multilevel.smc;
 
 import java.io.File;
 import java.util.Arrays;
@@ -6,6 +6,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+
+import multilevel.Node;
+import multilevel.io.Datum;
+import multilevel.io.MultiLevelDataset;
 
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;

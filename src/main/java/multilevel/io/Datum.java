@@ -1,4 +1,4 @@
-package multilevel;
+package multilevel.io;
 
 
 
@@ -6,7 +6,7 @@ public class Datum
 {
   public final int numberOfTrials, numberOfSuccesses;
 
-  Datum(int numberOfTrials, int numberOfSuccesses)
+  public Datum(int numberOfTrials, int numberOfSuccesses)
   {
     this.numberOfTrials = numberOfTrials;
     this.numberOfSuccesses = numberOfSuccesses;

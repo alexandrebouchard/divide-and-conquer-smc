@@ -2,6 +2,9 @@ package multilevel;
 
 import java.io.File;
 
+import multilevel.io.Datum;
+import multilevel.io.MultiLevelDataset;
+
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 

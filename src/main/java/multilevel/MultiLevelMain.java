@@ -3,7 +3,9 @@ package multilevel;
 import java.io.File;
 import java.util.Random;
 
-import multilevel.MultiLevelDcSmc.MultiLevelDcSmcOptions;
+import multilevel.io.MultiLevelDataset;
+import multilevel.smc.MultiLevelDcSmc;
+import multilevel.smc.MultiLevelDcSmc.MultiLevelDcSmcOptions;
 
 import briefj.opt.Option;
 import briefj.opt.OptionSet;

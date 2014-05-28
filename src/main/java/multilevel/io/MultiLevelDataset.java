@@ -1,10 +1,12 @@
-package multilevel;
+package multilevel.io;
 
 import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import multilevel.Node;
 
 import com.google.common.collect.Maps;
 
