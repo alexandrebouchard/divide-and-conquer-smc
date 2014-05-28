@@ -4,8 +4,8 @@ import java.io.File;
 import java.util.Random;
 
 import multilevel.io.MultiLevelDataset;
-import multilevel.smc.MultiLevelDcSmc;
-import multilevel.smc.MultiLevelDcSmc.MultiLevelDcSmcOptions;
+import multilevel.smc.DivideConquerMCAlgorithm;
+import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
 
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
@@ -34,7 +34,7 @@ public class MultiLevelMain implements Runnable
   public void run()
   {
     MultiLevelDataset dataset = new MultiLevelDataset(inputData);
-    MultiLevelDcSmc smc = new MultiLevelDcSmc(dataset, dcsmcOption);
+    DivideConquerMCAlgorithm smc = new DivideConquerMCAlgorithm(dataset, dcsmcOption);
     smc.sample(random);
   }
 

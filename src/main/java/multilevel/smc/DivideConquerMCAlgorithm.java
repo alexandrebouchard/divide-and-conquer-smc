@@ -33,7 +33,7 @@ import com.google.common.collect.Lists;
 
 
 
-public class MultiLevelDcSmc
+public class DivideConquerMCAlgorithm
 {
   private final MultiLevelDataset dataset;
   private final int nParticles;
@@ -56,7 +56,7 @@ public class MultiLevelDcSmc
     recurse(rand, dataset.getRoot());
   }
   
-  public MultiLevelDcSmc(MultiLevelDataset dataset, MultiLevelDcSmcOptions options)
+  public DivideConquerMCAlgorithm(MultiLevelDataset dataset, MultiLevelDcSmcOptions options)
   {
     this.dataset = dataset;
     this.nParticles = options.nParticles;
