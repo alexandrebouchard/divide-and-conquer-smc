@@ -309,12 +309,14 @@ public class MultiLevelDcSmc
       double proposed = options.useBetaProposal ? 
         beta.sample() :
         rand.nextDouble();
-      double logProposed = options.useBetaProposal ? 
-        Math.log(beta.density(proposed)) : 
-        0.0;
+
       double logPi = logBinomialPr(observation.numberOfTrials, observation.numberOfSuccesses, proposed);
       double transformed = transform(proposed);
-      double logWeight = logPi - logProposed;
+      double logWeight = options.useBetaProposal ? 
+          0.0 : // true up to a constant (because we have a ratio of a binomial to a beta
+                // TODO: compute that constant to get correct Z estimate in the future
+          logPi;// logPi - 0.0
+
       BrownianModelCalculator leaf = BrownianModelCalculator.observation(new double[]{transformed}, 1, false);
       
       result.particles[particleIndex] = new Particle(leaf, node);
