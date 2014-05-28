@@ -39,7 +39,7 @@ public class MultiLevelDcSmc
   
   public static class MultiLevelDcSmcOptions
   {
-    @Option public int nParticles = 100000;
+    @Option public int nParticles = 1000;
     @Option public int levelCutOffForOutput = 3;
     @Option public double variancePriorRate = 1.0;
     @Option public boolean useTransform = true;
@@ -222,10 +222,10 @@ public class MultiLevelDcSmc
       }
     }
     File plotsFolder = Results.getFolderInResultFolder("histograms");
-    String pathStr = node.toString();
     
     for (int c = 0; c < nChildren; c++)
     {
+      String pathStr = result.particles[0].childrenNodes.get(c).toString();
       new PlotHistogram(deltaSamples[c]).toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
       output.printWrite("deltaStats", "path", pathStr, "deltaMean", stats[c].getMean(), "deltaSD", stats[c].getStandardDeviation());
     }
