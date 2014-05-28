@@ -29,6 +29,15 @@ public class PreprocessNYSchoolData implements Runnable
    */
   @Option public HashSet<Integer> exludedYears = Sets.newHashSet(2010, 2011);
   
+  /**
+   * District 75 provides citywide educational, vocational, and behavior support programs for 
+   * students who are on the autism spectrum, have significant cognitive delays, are severely 
+   * emotionally challenged, sensory impaired and/or multiply disabled. 
+   * 
+   * http://schools.nyc.gov/Academics/SpecialEducation/D75/AboutD75/default.htm
+   */
+  @Option public HashSet<Integer> excludeDistricts = Sets.newHashSet(75);
+  
   @Option(gloss="Set to -1 to do no filtering") public int gradeFilter = 3;
   
   /**
@@ -54,6 +63,9 @@ public class PreprocessNYSchoolData implements Runnable
         if (DBN.length() != 6)
           throw new RuntimeException();
         int district = Integer.parseInt(DBN.substring(0,2));
+        if (excludeDistricts.contains(district))
+          continue loop;
+        
         String county = counties.get(DBN.substring(2, 3)).toString();
         int school = Integer.parseInt(DBN.substring(3, 6));
         int grade = Integer.parseInt(line.get("Grade"));
