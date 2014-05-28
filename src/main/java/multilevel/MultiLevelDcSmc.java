@@ -46,7 +46,7 @@ public class MultiLevelDcSmc
   
   public void sample(Random rand)
   {
-    recurse(rand, Lists.newArrayList(dataset.getRoot()));
+    recurse(rand, dataset.getRoot());
   }
   
   public MultiLevelDcSmc(MultiLevelDataset dataset, MultiLevelDcSmcOptions options)
@@ -88,9 +88,8 @@ public class MultiLevelDcSmc
     }
   }
   
-  private ParticleApproximation recurse(Random rand, List<Node> path)
+  private ParticleApproximation recurse(Random rand, Node node)
   {
-    Node node = BriefLists.last(path);
     Set<Node> children = dataset.getChildren(node);
     
     ParticleApproximation result;
@@ -102,7 +101,7 @@ public class MultiLevelDcSmc
       List<ParticleApproximation> childrenApproximations = Lists.newArrayList();
       
       for (Node child : children)
-        childrenApproximations.add(recurse(rand, BriefLists.concat(path,child)));
+        childrenApproximations.add(recurse(rand, child)); //BriefLists.concat(path,child)));
        
       for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
       {
@@ -140,14 +139,14 @@ public class MultiLevelDcSmc
     // monitor ESS
     double ess = SMCUtils.ess(result.probabilities);
     double relativeEss = ess/nParticles;
-    output.printWrite("ess", "level", node.level, "nodeLabel", node.label, "ess", ess, "relativeEss", relativeEss);
+    output.printWrite("ess", "level", node.level(), "nodeLabel", node.toString(), "ess", ess, "relativeEss", relativeEss);
     output.flush();
     
     // perform resampling
     result = resample(rand, result, nParticles);
     
     // report statistics on mean
-    if (node.level < options.levelCutOffForOutput)
+    if (node.level() < options.levelCutOffForOutput)
     {
       int nPlotPoints = 10000;
       DescriptiveStatistics meanStats = new DescriptiveStatistics();
@@ -167,7 +166,7 @@ public class MultiLevelDcSmc
         }
       }
       File plotsFolder = Results.getFolderInResultFolder("histograms");
-      String pathStr = Joiner.on("-").join(path);
+      String pathStr = node.toString();
       new PlotHistogram(meanSamples).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
       output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
       if (varianceSamples != null)

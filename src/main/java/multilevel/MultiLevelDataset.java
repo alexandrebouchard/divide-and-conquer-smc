@@ -51,12 +51,12 @@ public class MultiLevelDataset
       List<String> datum =line.subList(line.size() - 2, line.size());
       
       if (root == null)
-        root = new Node(0, path.get(0));
+        root = Node.root(path.get(0)); 
       
       for (int i = 0; i < path.size() - 1; i++)
-        BriefMaps.getOrPutSet(children, new Node(i, path.get(i))).add(new Node(i+1, path.get(i+1)));
+        BriefMaps.getOrPutSet(children, new Node(path.subList(0, i+1))).add(new Node(path.subList(0, i+2))); 
         
-      data.put(new Node(path.size()-1, BriefLists.last(path)), new Datum(Integer.parseInt(datum.get(0)), Integer.parseInt(datum.get(1))));
+      data.put(new Node(path), new Datum(Integer.parseInt(datum.get(0)), Integer.parseInt(datum.get(1))));
     }
   }
   

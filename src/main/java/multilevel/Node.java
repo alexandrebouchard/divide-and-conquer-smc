@@ -1,27 +1,42 @@
 package multilevel;
 
+import java.util.List;
+
+import briefj.BriefLists;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
 
 
 public class Node
 {
-  public final int level;
-  public final String label;
-  
-  Node(int level, String label)
+  public final List<String> path;
+
+  public Node(List<String> path)
   {
-    super();
-    this.level = level;
-    this.label = label;
+    this.path = path;
   }
+  
+  public Node child(String childName)
+  {
+    return new Node(BriefLists.concat(this.path, childName));
+  }
+  
+  public static Node root(String name)
+  {
+    return new Node(Lists.newArrayList(name));
+  }
+
   @Override
   public int hashCode()
   {
     final int prime = 31;
     int result = 1;
-    result = prime * result + ((label == null) ? 0 : label.hashCode());
-    result = prime * result + level;
+    result = prime * result + ((path == null) ? 0 : path.hashCode());
     return result;
   }
+
   @Override
   public boolean equals(Object obj)
   {
@@ -32,19 +47,23 @@ public class Node
     if (getClass() != obj.getClass())
       return false;
     Node other = (Node) obj;
-    if (label == null)
+    if (path == null)
     {
-      if (other.label != null)
+      if (other.path != null)
         return false;
-    } else if (!label.equals(other.label))
-      return false;
-    if (level != other.level)
+    } else if (!path.equals(other.path))
       return false;
     return true;
   }
+  
   @Override
   public String toString()
   {
-    return  label + "(L" + level + ")";
+    return Joiner.on("-").join(path);
+  }
+
+  public int level()
+  {
+    return path.size() - 1;
   }
 }
