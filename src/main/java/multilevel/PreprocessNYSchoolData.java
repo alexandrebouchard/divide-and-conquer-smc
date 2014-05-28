@@ -68,10 +68,10 @@ public class PreprocessNYSchoolData implements Runnable
         int level34 = Integer.parseInt(line.get("Level 3+4 #"));
         out.println(Joiner.on(",").join("NY", county, district, school, year, numberTrials, level34));
       }
-    catch (Exception e)
-    {
-      errors.incrementCount("" + e, 1.0);
-    }
+      catch (Exception e)
+      {
+        errors.incrementCount("" + e, 1.0);
+      }
     
     System.out.println("There were errors in " + ((int) errors.totalCount()) + " out of " + totalNLine + " lines");
     System.out.println();

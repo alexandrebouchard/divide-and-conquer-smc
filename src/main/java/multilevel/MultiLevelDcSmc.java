@@ -37,10 +37,10 @@ public class MultiLevelDcSmc
   
   public static class MultiLevelDcSmcOptions
   {
-    @Option public int nParticles = 1000;
-    @Option public int levelCutOffForOutput = Integer.MAX_VALUE;
-    @Option public double variancePriorRate = 10.0;
-    @Option public boolean useTransform = false;
+    @Option public int nParticles = 100000;
+    @Option public int levelCutOffForOutput = 3;
+    @Option public double variancePriorRate = 1.0;
+    @Option public boolean useTransform = true;
     @Option public boolean useBetaProposal = true;
   }
   
@@ -215,9 +215,11 @@ public class MultiLevelDcSmc
     
     // use a beta distributed proposal
     BetaDistribution beta = options.useBetaProposal  ? 
-        new BetaDistribution(new Random2RandomGenerator(rand), 
+        new BetaDistribution(
+            new Random2RandomGenerator(rand), 
             1 + observation.numberOfSuccesses, 
-            1 + (observation.numberOfTrials - observation.numberOfSuccesses), BetaDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY) :
+            1 + (observation.numberOfTrials - observation.numberOfSuccesses), 
+            BetaDistribution.DEFAULT_INVERSE_ABSOLUTE_ACCURACY) :
         null;
     for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
     {

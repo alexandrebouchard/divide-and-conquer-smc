@@ -10,7 +10,9 @@ public class ComputeNodeMeans
 {
   public static void main(String [] args)
   {
-    MultiLevelDataset dataset = new MultiLevelDataset( new File( "data/tiny.csv"));//"data/processed/preprocessedNYSData.csv"));
+    MultiLevelDataset dataset = new MultiLevelDataset( 
+//        new File( "data/tiny.csv"));
+    new File("data/processed/preprocessedNYSData.csv"));
     
     computeAverages(dataset,dataset.getRoot());
     
@@ -23,17 +25,18 @@ public class ComputeNodeMeans
     if (dataset.getChildren(node).isEmpty())
     {
       Datum d = dataset.getDatum(node);
-      System.out.println(d);
-      System.out.println(d.numberOfSuccesses / ((double) d.numberOfTrials));
       return d.numberOfSuccesses / ((double) d.numberOfTrials);
     }
     else
       for (Node child : dataset.getChildren(node))
         childrenStats.addValue(computeAverages(dataset, child)); 
     
-    System.out.println(node);
-    System.out.println("" + childrenStats.getMean() + " +/- " + childrenStats.getStandardDeviation());
-    System.out.println();
+    if (node.level() == 1)
+    {
+      System.out.println(node);
+      System.out.println("" + childrenStats.getMean() + " +/- " + childrenStats.getStandardDeviation());
+      System.out.println();
+    }
     
     return childrenStats.getMean();
   }
