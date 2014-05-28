@@ -2,6 +2,7 @@ package multilevel;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
@@ -35,6 +36,7 @@ public class MultiLevelDcSmc
   private final OutputManager output = new OutputManager();
   private final MultiLevelDcSmcOptions options;
   
+  
   public static class MultiLevelDcSmcOptions
   {
     @Option public int nParticles = 100000;
@@ -42,6 +44,7 @@ public class MultiLevelDcSmc
     @Option public double variancePriorRate = 1.0;
     @Option public boolean useTransform = true;
     @Option public boolean useBetaProposal = true;
+    @Option public int nPlotPoints = 10000;
   }
   
   public void sample(Random rand)
@@ -75,17 +78,52 @@ public class MultiLevelDcSmc
   
   public static class Particle
   {
+    public final Node node;
     public final BrownianModelCalculator message;
+    public final List<BrownianModelCalculator> childrenMessages; // used to compute delta statistics
+    public final List<Node> childrenNodes;
     public final double variance;
-    private Particle(BrownianModelCalculator message, double variance)
+    private Particle(BrownianModelCalculator message, double variance, List<BrownianModelCalculator> childrenMessages, Node node, List<Node> childrenNodes)
     {
       this.message = message;
       this.variance = variance;
+      this.childrenMessages = childrenMessages;
+      this.node = node;
+      this.childrenNodes = childrenNodes;
     }
-    public Particle(BrownianModelCalculator leaf)
+    @SuppressWarnings("unchecked")
+    public Particle(BrownianModelCalculator leaf, Node node)
     {
-      this(leaf, Double.NaN);
+      this(leaf, Double.NaN, Collections.EMPTY_LIST, node, Collections.EMPTY_LIST);
     }
+    public double sampleValue(Random rand)
+    {
+      return Normal.generate(rand, message.message[0], message.messageVariance);
+    }
+
+  }
+  
+  /**
+   * If there are C children, return an array of joint samples of size C+1, where the last
+   * entry is the root, and the rest are children
+   * @param rand
+   * @param p
+   * @return
+   */
+  public double[] sampleChildrenJointly(Random rand, Particle p)
+  {
+    double rootSample = p.sampleValue(rand);
+    int size = p.childrenMessages.size();
+    double[] result = new double[size+1];
+    
+    for (int c = 0; c < size; c++)
+    {
+      BrownianModelCalculator updatedCalculator = p.message.combine(p.message, p.childrenMessages.get(c), p.variance, 0.0, false);
+      result[c] = Normal.generate(rand, updatedCalculator.message[0], updatedCalculator.messageVariance);
+    }
+    result[size] = rootSample;
+    
+    return result;
   }
   
   private ParticleApproximation recurse(Random rand, Node node)
@@ -111,10 +149,12 @@ public class MultiLevelDcSmc
         // build product sample from children
         double weight = 0.0;
         List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
+        List<Node> childrenNode = Lists.newArrayList();
         for (ParticleApproximation childApprox : childrenApproximations)
         {
           sampledCalculators.add(childApprox.particles[particleIndex].message);
           weight += childApprox.probabilities[particleIndex];
+          childrenNode.add(childApprox.particles[particleIndex].node);
         }
         
         // compute weight
@@ -125,7 +165,7 @@ public class MultiLevelDcSmc
         weight = weight + varianceRatio(variance);
         
         // add both qts to result
-        result.particles[particleIndex] = new Particle(combined, variance);
+        result.particles[particleIndex] = new Particle(combined, variance, sampledCalculators, node, childrenNode);
         result.probabilities[particleIndex] = weight;
       }
     }
@@ -145,42 +185,85 @@ public class MultiLevelDcSmc
     // perform resampling
     result = resample(rand, result, nParticles);
     
-    // report statistics on mean
+    // report statistics on node mean, var
     if (node.level() < options.levelCutOffForOutput)
-    {
-      int nPlotPoints = 10000;
-      DescriptiveStatistics meanStats = new DescriptiveStatistics();
-      double [] meanSamples = new double[nPlotPoints];
-      double [] varianceSamples = children.isEmpty() ? null : new double[nPlotPoints];
-      DescriptiveStatistics varStats = children.isEmpty() ? null : new DescriptiveStatistics();
-      for (int i = 0; i < nPlotPoints; i++)
-      {
-        Particle p = result.particles[i % nParticles];
-        double meanPoint = inverseTransform(Normal.generate(rand, p.message.message[0], p.message.messageVariance));
-        meanStats.addValue(meanPoint);
-        meanSamples[i] = meanPoint;
-        if (varianceSamples != null)
-        {
-          varianceSamples[i] = p.variance;
-          varStats.addValue(p.variance);
-        }
-      }
-      File plotsFolder = Results.getFolderInResultFolder("histograms");
-      String pathStr = node.toString();
-      new PlotHistogram(meanSamples).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
-      output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
-      if (varianceSamples != null)
-      {
-        new PlotHistogram(varianceSamples).toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
-        output.printWrite("varStats", "path", pathStr, "varMean", varStats.getMean(), "varSD", varStats.getStandardDeviation());
-      }
-      output.flush();
-    }
+      printNodeStatistics(rand, node, result);
     
+    // report statistics on deltas
+    if (node.level() + 1 < options.levelCutOffForOutput && !children.isEmpty())
+      printDeltaNodeStatistics(rand, node, result);
     
     return result;
   }
   
+  private void printDeltaNodeStatistics(Random rand, Node node,
+      ParticleApproximation result)
+  {
+    Set<Node> children = dataset.getChildren(node);
+    int nChildren = children.size();
+    
+    double [][] deltaSamples = new double[nChildren][options.nPlotPoints];
+    DescriptiveStatistics [] stats = new DescriptiveStatistics[options.nPlotPoints];
+    for (int c = 0; c < nChildren; c++)
+      stats[c] = new DescriptiveStatistics();
+    
+    for (int i = 0; i < options.nPlotPoints; i++)
+    {
+      Particle p = result.particles[i % nParticles];
+      double [] jointSample = sampleChildrenJointly(rand, p);
+      double transformedRoot = inverseTransform(jointSample[nChildren]);
+      
+      for (int c = 0; c < nChildren; c++)
+      {
+        double transformedChild = inverseTransform(jointSample[c]);
+        double delta = transformedChild - transformedRoot;
+        deltaSamples[c][i] = delta;
+        stats[c].addValue(delta);
+      }
+    }
+    File plotsFolder = Results.getFolderInResultFolder("histograms");
+    String pathStr = node.toString();
+    
+    for (int c = 0; c < nChildren; c++)
+    {
+      new PlotHistogram(deltaSamples[c]).toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
+      output.printWrite("deltaStats", "path", pathStr, "deltaMean", stats[c].getMean(), "deltaSD", stats[c].getStandardDeviation());
+    }
+    output.flush();
+  }
+
+  private void printNodeStatistics(Random rand, Node node, ParticleApproximation result)
+  {
+    Set<Node> children = dataset.getChildren(node);
+    
+    DescriptiveStatistics meanStats = new DescriptiveStatistics();
+    double [] meanSamples = new double[options.nPlotPoints];
+    double [] varianceSamples = children.isEmpty() ? null : new double[options.nPlotPoints];
+    DescriptiveStatistics varStats = children.isEmpty() ? null : new DescriptiveStatistics();
+    for (int i = 0; i < options.nPlotPoints; i++)
+    {
+      Particle p = result.particles[i % nParticles];
+      double meanPoint = inverseTransform(p.sampleValue(rand));
+      meanStats.addValue(meanPoint);
+      meanSamples[i] = meanPoint;
+      if (varianceSamples != null)
+      {
+        varianceSamples[i] = p.variance;
+        varStats.addValue(p.variance);
+      }
+    }
+    File plotsFolder = Results.getFolderInResultFolder("histograms");
+    String pathStr = node.toString();
+    new PlotHistogram(meanSamples).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
+    output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
+    if (varianceSamples != null)
+    {
+      new PlotHistogram(varianceSamples).toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
+      output.printWrite("varStats", "path", pathStr, "varMean", varStats.getMean(), "varSD", varStats.getStandardDeviation());
+    }
+    output.flush();    
+  }
+
   private static ParticleApproximation resample(Random rand, ParticleApproximation beforeResampling, int nParticles)
   {
     ParticleApproximation resampledResult = new ParticleApproximation(nParticles);
@@ -234,7 +317,7 @@ public class MultiLevelDcSmc
       double logWeight = logPi - logProposed;
       BrownianModelCalculator leaf = BrownianModelCalculator.observation(new double[]{transformed}, 1, false);
       
-      result.particles[particleIndex] = new Particle(leaf);
+      result.particles[particleIndex] = new Particle(leaf, node);
       result.probabilities[particleIndex] = logWeight;
     }
     
