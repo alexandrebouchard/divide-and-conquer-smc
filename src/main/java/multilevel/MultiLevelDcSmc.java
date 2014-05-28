@@ -126,6 +126,22 @@ public class MultiLevelDcSmc
     return result;
   }
   
+//  public static void main(String [] args)
+//  {
+//    MultiLevelDcSmc smc = new MultiLevelDcSmc(null, new MultiLevelDcSmcOptions());
+////    BrownianModelCalculator leaf1 = BrownianModelCalculator.observation(new double[]{0}, 1, false);
+//    double n = 1.0;
+//    for (double d = 1; d < 100000 ; d++)
+//    {
+////      BrownianModelCalculator leaf2 = BrownianModelCalculator.observation(new double[]{d}, 1, false);
+////      BrownianModelCalculator combined = leaf1.combine(leaf1, leaf2, 1, 0, false);
+////      System.out.println("" + d + "\t" + combined.logLikelihood());
+//      n-= Math.pow(2,-d);
+//      double r = smc.transform(n);
+//      System.out.println("" + n + "\t" + r);
+//    }
+//  }
+  
   private ParticleApproximation recurse(Random rand, Node node)
   {
     Set<Node> children = dataset.getChildren(node);
@@ -160,13 +176,24 @@ public class MultiLevelDcSmc
         // compute weight
         BrownianModelCalculator combined = BrownianModelCalculator.combine(sampledCalculators, variance);
         weight += combined.logLikelihood();
+        
+        if (Double.isNaN(weight) || Double.isInfinite(weight))
+          System.err.println("Warning: weight became NaN (1)" + weight);
+        
         for (BrownianModelCalculator childCalculator : sampledCalculators)
           weight = weight - childCalculator.logLikelihood();
+        
+        if (Double.isNaN(weight)|| Double.isInfinite(weight))
+          System.err.println("Warning: weight became NaN (2)" + weight);
+        
         weight = weight + varianceRatio(variance);
+        
+        if (Double.isNaN(weight)|| Double.isInfinite(weight))
+          System.err.println("Warning: weight became NaN (3)" + weight);
         
         // add both qts to result
         result.particles[particleIndex] = new Particle(combined, variance, sampledCalculators, node, childrenNode);
-        result.probabilities[particleIndex] = weight;
+        result.probabilities[particleIndex] = Double.isNaN(weight) ? Double.NEGATIVE_INFINITY : weight;
       }
     }
     
@@ -177,10 +204,66 @@ public class MultiLevelDcSmc
     Multinomial.expNormalize(result.probabilities);
     
     // monitor ESS
+    try {
     double ess = SMCUtils.ess(result.probabilities);
+    
     double relativeEss = ess/nParticles;
     output.printWrite("ess", "level", node.level(), "nodeLabel", node.toString(), "ess", ess, "relativeEss", relativeEss);
     output.flush();
+    
+    } catch (Exception e)
+    {
+      if (children.isEmpty())
+        result = _leafParticleApproximation(rand, node);
+      else
+      {
+        result = new ParticleApproximation(nParticles);
+        List<ParticleApproximation> childrenApproximations = Lists.newArrayList();
+        
+        for (Node child : children)
+          childrenApproximations.add(recurse(rand, child)); //BriefLists.concat(path,child)));
+         
+        for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
+        {
+          // sample a variance
+          double variance = sampleVariance(rand);
+          
+          // build product sample from children
+          double weight = 0.0;
+          List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
+          List<Node> childrenNode = Lists.newArrayList();
+          for (ParticleApproximation childApprox : childrenApproximations)
+          {
+            sampledCalculators.add(childApprox.particles[particleIndex].message);
+            weight += childApprox.probabilities[particleIndex];
+            childrenNode.add(childApprox.particles[particleIndex].node);
+          }
+          
+          // compute weight
+          BrownianModelCalculator combined = BrownianModelCalculator.combine(sampledCalculators, variance);
+          weight += combined.logLikelihood();
+          
+          if (Double.isNaN(weight) || Double.isInfinite(weight))
+            System.err.println("Warning: weight became NaN (1)" + weight);
+          
+          for (BrownianModelCalculator childCalculator : sampledCalculators)
+            weight = weight - childCalculator.logLikelihood();
+          
+          if (Double.isNaN(weight)|| Double.isInfinite(weight))
+            System.err.println("Warning: weight became NaN (2)" + weight);
+          
+          weight = weight + varianceRatio(variance);
+          
+          if (Double.isNaN(weight)|| Double.isInfinite(weight))
+            System.err.println("Warning: weight became NaN (3)" + weight);
+          
+          // add both qts to result
+          result.particles[particleIndex] = new Particle(combined, variance, sampledCalculators, node, childrenNode);
+          result.probabilities[particleIndex] = Double.isNaN(weight) ? Double.NEGATIVE_INFINITY : weight;
+        }
+      }
+    }
+    
     
     // perform resampling
     result = resample(rand, result, nParticles);
@@ -309,12 +392,13 @@ public class MultiLevelDcSmc
       double proposed = options.useBetaProposal ? 
         beta.sample() :
         rand.nextDouble();
-      double logProposed = options.useBetaProposal ? 
-        Math.log(beta.density(proposed)) : 
-        0.0;
+
       double logPi = logBinomialPr(observation.numberOfTrials, observation.numberOfSuccesses, proposed);
       double transformed = transform(proposed);
-      double logWeight = logPi - logProposed;
+      double logWeight = options.useBetaProposal ? 
+          0.0 : // true up to a constant (because we have a ratio of a binomial to a beta
+                // TODO: compute that constant to get correct Z estimate in the future
+          logPi;// logPi - 0.0
       BrownianModelCalculator leaf = BrownianModelCalculator.observation(new double[]{transformed}, 1, false);
       
       result.particles[particleIndex] = new Particle(leaf, node);
@@ -337,7 +421,15 @@ public class MultiLevelDcSmc
   private double transform(double numberOnSimplex)
   {
     if (options.useTransform )
+    {
+      if (numberOnSimplex > 1.0 || numberOnSimplex < 0.0)
+        throw new RuntimeException();
+      if (numberOnSimplex > 0.9999999999999991)
+        return 34.657359027997266;
+      if (numberOnSimplex < 8.881784197001252E-16)
+        return -34.657359027997266;
       return SpecialFunctions.logit(numberOnSimplex);
+    }
     else
       return numberOnSimplex;
   }
