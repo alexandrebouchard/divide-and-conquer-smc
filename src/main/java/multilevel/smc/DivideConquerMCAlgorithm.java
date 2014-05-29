@@ -10,6 +10,7 @@ import multilevel.Node;
 import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
@@ -225,7 +226,7 @@ public class DivideConquerMCAlgorithm
     for (int c = 0; c < nChildren; c++)
     {
       String pathStr = result.particles[0].childrenNodes.get(c).toString();
-      new PlotHistogram(deltaSamples[c]).toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
+      PlotHistogram.from(deltaSamples[c]).withXLimit(-0.5, 0.5).withYLimit(0, 15).toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
       output.printWrite("deltaStats", "path", pathStr, "deltaMean", stats[c].getMean(), "deltaSD", stats[c].getStandardDeviation());
     }
     output.flush();
@@ -253,11 +254,11 @@ public class DivideConquerMCAlgorithm
     }
     File plotsFolder = Results.getFolderInResultFolder("histograms");
     String pathStr = node.toString();
-    new PlotHistogram(meanSamples).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
+    PlotHistogram.from(meanSamples).withXLimit(0.6, 1.0).withYLimit(0, 25).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
     output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
     if (varianceSamples != null)
     {
-      new PlotHistogram(varianceSamples).toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
+      PlotHistogram.from(varianceSamples).withXLimit(0, 4.0).withYLimit(0, 5).toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
       output.printWrite("varStats", "path", pathStr, "varMean", varStats.getMean(), "varSD", varStats.getStandardDeviation());
     }
     output.flush();    
