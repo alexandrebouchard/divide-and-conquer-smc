@@ -44,7 +44,6 @@ public class DivideConquerMCAlgorithm
     @Option public double variancePriorRate = 1.0;
     @Option public boolean useTransform = true;
     @Option public boolean useBetaProposal = true;
-    @Option public int nPlotPoints = 10000;
   }
   
   public void sample(Random rand)
@@ -202,12 +201,12 @@ public class DivideConquerMCAlgorithm
     Set<Node> children = dataset.getChildren(node);
     int nChildren = children.size();
     
-    double [][] deltaSamples = new double[nChildren][options.nPlotPoints];
-    DescriptiveStatistics [] stats = new DescriptiveStatistics[options.nPlotPoints];
+    double [][] deltaSamples = new double[nChildren][options.nParticles];
+    DescriptiveStatistics [] stats = new DescriptiveStatistics[options.nParticles];
     for (int c = 0; c < nChildren; c++)
       stats[c] = new DescriptiveStatistics();
     
-    for (int i = 0; i < options.nPlotPoints; i++)
+    for (int i = 0; i < options.nParticles; i++)
     {
       Particle p = result.particles[i % nParticles];
       double [] jointSample = sampleChildrenJointly(rand, p);
@@ -237,10 +236,10 @@ public class DivideConquerMCAlgorithm
     Set<Node> children = dataset.getChildren(node);
     
     DescriptiveStatistics meanStats = new DescriptiveStatistics();
-    double [] meanSamples = new double[options.nPlotPoints];
-    double [] varianceSamples = children.isEmpty() ? null : new double[options.nPlotPoints];
+    double [] meanSamples = new double[options.nParticles];
+    double [] varianceSamples = children.isEmpty() ? null : new double[options.nParticles];
     DescriptiveStatistics varStats = children.isEmpty() ? null : new DescriptiveStatistics();
-    for (int i = 0; i < options.nPlotPoints; i++)
+    for (int i = 0; i < options.nParticles; i++)
     {
       Particle p = result.particles[i % nParticles];
       double meanPoint = inverseTransform(p.sampleValue(rand));
