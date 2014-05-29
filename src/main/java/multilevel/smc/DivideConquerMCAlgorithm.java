@@ -1,7 +1,6 @@
 package multilevel.smc;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -13,7 +12,6 @@ import multilevel.io.MultiLevelDataset;
 
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 
 import bayonet.distributions.Exponential;
@@ -22,13 +20,11 @@ import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
 import bayonet.math.SpecialFunctions;
 import bayonet.rplot.PlotHistogram;
-import briefj.BriefLists;
 import briefj.OutputManager;
 import briefj.collections.Counter;
 import briefj.opt.Option;
 import briefj.run.Results;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 
