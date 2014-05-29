@@ -6,8 +6,8 @@ uploadArchives {
   repositories.mavenDeployer {
     repository(url: "file:///Users/bouchard/Documents/web/public_html/maven/")
     pom.version = "1.0.0"
-    pom.artifactId = "logistree"
-    pom.groupId = "com.logistree"
+    pom.artifactId = "multilevelSMC"
+    pom.groupId = "ca.ubc.stat"
   }
 }
 
@@ -34,7 +34,8 @@ dependencies {
   compile group: 'junit', name: 'junit', version: '4.11'
   compile group: 'ca.ubc.stat', name: 'tutorialj', version: '2.0.2'
   compile group: 'ca.ubc.stat', name: 'binc', version: '1.1.2'
-  compile group: 'ca.ubc.stat', name: 'briefj', version: '2.1.0'
+  compile group: 'ca.ubc.stat', name: 'briefj', version: '2.2.0'
+  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.1.1'
 }
 
 task(tutorialj, dependsOn: ['build','testClasses'], type: JavaExec) {
@@ -64,4 +65,4 @@ buildscript {
 // use 'gradle distZip' to create deployable zip
 // use 'gradle installApp' to copy it somewhere
 apply plugin:'application'  
-mainClassName = "logistree.Main"
+mainClassName = "multilevel.MultiLevelMain"
