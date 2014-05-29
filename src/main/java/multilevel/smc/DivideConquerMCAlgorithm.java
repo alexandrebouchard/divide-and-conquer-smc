@@ -10,7 +10,6 @@ import multilevel.Node;
 import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
@@ -41,7 +40,7 @@ public class DivideConquerMCAlgorithm
   public static class MultiLevelDcSmcOptions
   {
     @Option public int nParticles = 1000;
-    @Option public int levelCutOffForOutput = 3;
+    @Option public int levelCutOffForOutput = 2;
     @Option public double variancePriorRate = 1.0;
     @Option public boolean useTransform = true;
     @Option public boolean useBetaProposal = true;
@@ -203,7 +202,7 @@ public class DivideConquerMCAlgorithm
     int nChildren = children.size();
     
     double [][] deltaSamples = new double[nChildren][options.nParticles];
-    DescriptiveStatistics [] stats = new DescriptiveStatistics[options.nParticles];
+    DescriptiveStatistics [] stats = new DescriptiveStatistics[nChildren];
     for (int c = 0; c < nChildren; c++)
       stats[c] = new DescriptiveStatistics();
     
