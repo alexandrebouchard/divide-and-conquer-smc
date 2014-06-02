@@ -19,7 +19,7 @@ import briefj.run.Results;
 
 public class PreprocessNYSchoolData implements Runnable
 {
-  @Option public File inputFile = new File("data/NYS_Math_Test_Results_By_Grade_2006-2011_-_School_Level_-_All_Students.csv");
+  @Option(required=true) public File inputFile;
   
   /**
    * Starting in 2010, NYSED changed the scale score required to meet each of the proficiency levels, 
