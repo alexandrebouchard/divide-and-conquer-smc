@@ -6,3 +6,5 @@ bin
 bin/logistree
 bin/logistree/Main.class
 build
+data
+results
