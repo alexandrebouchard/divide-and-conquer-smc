@@ -12,6 +12,7 @@ import com.google.common.collect.Maps;
 
 import briefj.BriefIO;
 import briefj.BriefMaps;
+import briefj.collections.Counter;
 
 
 
@@ -63,7 +64,21 @@ public class MultiLevelDataset
   
   public static void main(String [] args)
   {
-    MultiLevelDataset data = new MultiLevelDataset(new File("data/processed/preprocessedNYSData.csv"));
-    System.out.println(data.children);
+    MultiLevelDataset data = new MultiLevelDataset(new File("data/processed-v2/preprocessedNYSData.csv"));
+    Counter<Integer> nNodes = new Counter<Integer>();
+    data.nNodes(nNodes, data.root, 0);
+    System.out.println("Nodes per level: " + nNodes);
+    System.out.println("Total number of levels: " + nNodes.totalCount());
+    int nStudents = 0;
+    for (Datum d : data.data.values())
+      nStudents += d.numberOfTrials;
+    System.out.println("Total number of students: " + nStudents);
+  }
+  
+  private void nNodes(Counter<Integer> c, Node n, int level)
+  {
+    c.incrementCount(level, 1.0);
+    for (Node ch : getChildren(n))
+      nNodes(c, ch, level + 1);
   }
 }
