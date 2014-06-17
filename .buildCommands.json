@@ -2,7 +2,12 @@
   "buildCommands": [
     {
       "commandName": "gradle",
-      "commandArguments": "--quiet installApp"
+      "commandArguments": [
+        "--quiet",
+        "installApp",
+        "-x",
+        "test"
+      ]
     }
   ]
 }
