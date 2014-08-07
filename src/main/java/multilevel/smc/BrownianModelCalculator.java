@@ -37,8 +37,6 @@ public class BrownianModelCalculator
     return current;
   }
   
-  
-  
   @Option public static boolean useVarianceTransform = false;
   public final boolean resampleRoot;
   

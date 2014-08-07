@@ -8,3 +8,10 @@ bin/logistree/Main.class
 build
 data
 results
+stan-src/example-script.sh
+stan-src/final
+stan-src/model_test
+stan-src/model_test.cpp
+stan-src/model_test.stan
+stan-src/output.csv
+stan-src/small-synthetic.txt

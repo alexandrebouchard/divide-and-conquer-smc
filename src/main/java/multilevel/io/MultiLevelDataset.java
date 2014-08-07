@@ -18,8 +18,8 @@ import briefj.collections.Counter;
 
 public class MultiLevelDataset
 {
-  private Map<Node,Set<Node>> children = Maps.newHashMap();
-  public final Map<Node,Datum> data = Maps.newHashMap();
+  private Map<Node,Set<Node>> children = Maps.newLinkedHashMap();
+  public final Map<Node,Datum> data = Maps.newLinkedHashMap();
   private Node root = null;
   
   public Set<Node> getChildren(Node node)

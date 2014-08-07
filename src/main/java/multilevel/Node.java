@@ -57,9 +57,14 @@ public class Node
   }
   
   @Override
-  public String toString()
+  public final String toString()
   {
-    return Joiner.on("-").join(path);
+    return toString("-");
+  }
+  
+  public final String toString(String separator)
+  {
+    return Joiner.on(separator).join(path);
   }
 
   public int level()

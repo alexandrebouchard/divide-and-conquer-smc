@@ -125,6 +125,12 @@ public class DivideConquerMCAlgorithm
     return result;
   }
   
+//  private void standardSMC(Random rand)
+//  {
+//    // list nodes in postorder
+//    List<Node> 
+//  }
+  
   private ParticleApproximation recurse(Random rand, Node node)
   {
     Set<Node> children = dataset.getChildren(node);
