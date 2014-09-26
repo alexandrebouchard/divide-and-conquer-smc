@@ -82,7 +82,7 @@ public class ReadStanOutput implements Runnable
         double essPerSec = Double.parseDouble(fields[8]);
         String var = fields[0];
         if (smcEssPerSec.keySet().contains(var))
-          output.printWrite("ess-comparison", "stanEssPerSec", essPerSec, "smcEssPerSec", smcEssPerSec.get(var), "speedup", "" + (smcEssPerSec.get(var)/essPerSec));
+          output.printWrite("ess-comparison", "node", var, "stanEssPerSec", essPerSec, "smcEssPerSec", smcEssPerSec.get(var), "speedup", "" + (smcEssPerSec.get(var)/essPerSec));
       }
     }
     output.flush();
