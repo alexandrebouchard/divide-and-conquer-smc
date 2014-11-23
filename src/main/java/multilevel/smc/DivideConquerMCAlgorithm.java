@@ -2,7 +2,7 @@ package multilevel.smc;
 
 import java.io.File;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -93,7 +93,7 @@ public class DivideConquerMCAlgorithm
       if (initialization)
         for (int i = 0; i < nParticles; i++)
         {
-          this.particles.add(new HashMap<Node, DivideConquerMCAlgorithm.Particle>());
+          this.particles.add(new LinkedHashMap<Node, DivideConquerMCAlgorithm.Particle>());
           this.weights[i] = 1.0/((double) nParticles);
         }
     }
@@ -105,20 +105,22 @@ public class DivideConquerMCAlgorithm
     public final Node node;
     public final BrownianModelCalculator message;
     public final List<BrownianModelCalculator> childrenMessages; // used to compute delta statistics
+    public final double descendentObservationLogLikelihood; // product over all the leaves under the node of the conditionals of data given imputed preterminals
     public final List<Node> childrenNodes;
     public final double variance;
-    private Particle(BrownianModelCalculator message, double variance, List<BrownianModelCalculator> childrenMessages, Node node, List<Node> childrenNodes)
+    private Particle(BrownianModelCalculator message, double variance, List<BrownianModelCalculator> childrenMessages, Node node, List<Node> childrenNodes, double descendentObservationLogLikelihood)
     {
       this.message = message;
       this.variance = variance;
       this.childrenMessages = childrenMessages;
       this.node = node;
       this.childrenNodes = childrenNodes;
+      this.descendentObservationLogLikelihood = descendentObservationLogLikelihood;
     }
     @SuppressWarnings("unchecked")
-    public Particle(BrownianModelCalculator leaf, Node node)
+    public Particle(BrownianModelCalculator leaf, Node node, double descendentObservationLogLikelihood)
     {
-      this(leaf, Double.NaN, Collections.EMPTY_LIST, node, Collections.EMPTY_LIST);
+      this(leaf, Double.NaN, Collections.EMPTY_LIST, node, Collections.EMPTY_LIST, descendentObservationLogLikelihood);
     }
     public double sampleValue(Random rand)
     {
@@ -178,21 +180,26 @@ public class DivideConquerMCAlgorithm
           List<BrownianModelCalculator> childrenCalculators = Lists.newArrayList();
           double logWeightUpdate = 0.0;
           List<Node> childrenNodes = Lists.newArrayList();
+          double descLogLikelihoods = 0.0;
           for (Node child : children)
           {
-            BrownianModelCalculator message = approximation.particles.get(particleIndex).get(child).message;
+            Particle childParticle = approximation.particles.get(particleIndex).get(child);
+            BrownianModelCalculator message = childParticle.message;
             childrenCalculators.add(message);
             childrenNodes.add(child);
             logWeightUpdate = logWeightUpdate - message.logLikelihood();
+            descLogLikelihoods += childParticle.descendentObservationLogLikelihood;
           }
           BrownianModelCalculator combined = BrownianModelCalculator.combine(childrenCalculators, variance);
           double combinedLogLikelihood = combined.logLikelihood();
           logWeightUpdate += combinedLogLikelihood;
           approximation.weights[particleIndex] *= Math.exp(logWeightUpdate);
-          if (combinedLogLikelihood > maxLogLikelihood)
-            maxLogLikelihood = combinedLogLikelihood;
-          Particle newParticle = new Particle(combined, variance, childrenCalculators, node, childrenNodes);
+          
+          Particle newParticle = new Particle(combined, variance, childrenCalculators, node, childrenNodes, descLogLikelihoods);
           approximation.particles.get(particleIndex).put(node, newParticle);
+          
+          if (combinedLogLikelihood + newParticle.descendentObservationLogLikelihood > maxLogLikelihood)
+            maxLogLikelihood = combinedLogLikelihood + newParticle.descendentObservationLogLikelihood;
         }
         Multinomial.normalize(approximation.weights);
       }
@@ -217,7 +224,7 @@ public class DivideConquerMCAlgorithm
         for (int oldPopulationIndex : resampledCounts.keySet())
           for (int multiplicity = 0; multiplicity < resampledCounts.getCount(oldPopulationIndex); multiplicity++)
           {
-            Map<Node, Particle> copy = new HashMap<Node,Particle>(approximation.particles.get(oldPopulationIndex));
+            Map<Node, Particle> copy = new LinkedHashMap<Node,Particle>(approximation.particles.get(oldPopulationIndex));
             newApprox.particles.add(copy);
           }
         for (int i = 0; i < options.nParticles; i++)
@@ -256,11 +263,14 @@ public class DivideConquerMCAlgorithm
         double weight = 0.0;
         List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
         List<Node> childrenNode = Lists.newArrayList();
+        double descParticleObsLogl = 0.0;
         for (ParticleApproximation childApprox : childrenApproximations)
         {
-          sampledCalculators.add(childApprox.particles[particleIndex].message);
+          Particle childParticle = childApprox.particles[particleIndex];
+          sampledCalculators.add(childParticle.message);
           weight += childApprox.probabilities[particleIndex];
           childrenNode.add(childApprox.particles[particleIndex].node);
+          descParticleObsLogl += childParticle.descendentObservationLogLikelihood;
         }
         
         // compute weight
@@ -268,16 +278,17 @@ public class DivideConquerMCAlgorithm
         double combinedLogLikelihood = combined.logLikelihood();
         weight += combinedLogLikelihood;
         
-        if (combinedLogLikelihood > maxLogLikelihood)
-          maxLogLikelihood = combinedLogLikelihood;
-        
         for (BrownianModelCalculator childCalculator : sampledCalculators)
           weight = weight - childCalculator.logLikelihood();
         weight = weight + varianceRatio(variance);
         
         // add both qts to result
-        result.particles[particleIndex] = new Particle(combined, variance, sampledCalculators, node, childrenNode);
+        Particle newParticle = new Particle(combined, variance, sampledCalculators, node, childrenNode, descParticleObsLogl);
+        result.particles[particleIndex] = newParticle;
         result.probabilities[particleIndex] = weight;
+        
+        if (combinedLogLikelihood + newParticle.descendentObservationLogLikelihood  > maxLogLikelihood)
+          maxLogLikelihood = combinedLogLikelihood + newParticle.descendentObservationLogLikelihood;
       }
     }
     
@@ -434,7 +445,7 @@ public class DivideConquerMCAlgorithm
 
       BrownianModelCalculator leaf = BrownianModelCalculator.observation(new double[]{transformed}, 1, false);
       
-      result.particles[particleIndex] = new Particle(leaf, node);
+      result.particles[particleIndex] = new Particle(leaf, node, logPi);
       result.probabilities[particleIndex] = logWeight;
     }
     
@@ -442,7 +453,7 @@ public class DivideConquerMCAlgorithm
     return result;
   }
   
-  private double logBinomialPr(int nTrials, int nSuccesses, double prOfSuccess)
+  public static double logBinomialPr(int nTrials, int nSuccesses, double prOfSuccess)
   {
     if (nTrials < 0 || nSuccesses < 0 || nSuccesses > nTrials || prOfSuccess < 0 || prOfSuccess > 1)
       throw new RuntimeException();
