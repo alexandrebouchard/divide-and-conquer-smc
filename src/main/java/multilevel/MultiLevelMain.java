@@ -18,6 +18,9 @@ public class MultiLevelMain implements Runnable
   @Option(required = true) public File inputData;
   @OptionSet(name = "dc") public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
   @Option public Random random = new Random(1);
+  @Option public SamplingMethod samplingMethod = SamplingMethod.DC;
+  
+  public static enum SamplingMethod { DC, STD }
 
   /**
    * @param args
@@ -32,7 +35,17 @@ public class MultiLevelMain implements Runnable
   {
     MultiLevelDataset dataset = new MultiLevelDataset(inputData);
     DivideConquerMCAlgorithm smc = new DivideConquerMCAlgorithm(dataset, dcsmcOption);
-    smc.sample(random);
+    
+    if (samplingMethod == SamplingMethod.DC)  
+    {
+      System.out.println("Starting DC sampling");
+      smc.dc_sample(random);
+    }
+    else
+    {
+      System.out.println("Starting standard sampling");
+      smc.standardSMC_sample(random);
+    }
   }
 
 }

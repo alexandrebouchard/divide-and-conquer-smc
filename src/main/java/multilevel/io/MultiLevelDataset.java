@@ -8,6 +8,7 @@ import java.util.Set;
 
 import multilevel.Node;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import briefj.BriefIO;
@@ -80,5 +81,19 @@ public class MultiLevelDataset
     c.incrementCount(level, 1.0);
     for (Node ch : getChildren(n))
       nNodes(c, ch, level + 1);
+  }
+
+  public List<Node> postOrder()
+  {
+    List<Node> result = Lists.newArrayList();
+    postOrder(getRoot(), result);
+    return result;
+  }
+
+  private void postOrder(Node node, List<Node> result)
+  {
+    for (Node child : getChildren(node))  
+      postOrder(child, result);
+    result.add(node);
   }
 }

@@ -2,7 +2,9 @@ package multilevel.smc;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -10,22 +12,27 @@ import multilevel.Node;
 import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
-
 
 import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
 import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
+import bayonet.math.NumericalUtils;
 import bayonet.math.SpecialFunctions;
 import bayonet.rplot.PlotHistogram;
 import briefj.OutputManager;
 import briefj.collections.Counter;
+import briefj.collections.Tree;
 import briefj.opt.Option;
 import briefj.run.Results;
 
+import com.beust.jcommander.internal.Maps;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 
 
 
@@ -46,7 +53,7 @@ public class DivideConquerMCAlgorithm
     @Option public boolean useBetaProposal = true;
   }
   
-  public void sample(Random rand)
+  public void dc_sample(Random rand)
   {
     recurse(rand, dataset.getRoot());
   }
@@ -73,6 +80,29 @@ public class DivideConquerMCAlgorithm
       int index = Multinomial.sampleMultinomial(rand, probabilities);
       return particles[index];
     }
+  }
+  
+  public static class StandardParticleApproximation
+  {
+    public final List<Map<Node, Particle>> particles;
+    public final double [] weights;
+    
+    /**
+     * Initialization
+     * @param nParticles
+     */
+    private StandardParticleApproximation(int nParticles, boolean initialization)
+    {
+      this.particles = Lists.newArrayList();
+      this.weights = new double[nParticles];
+      if (initialization)
+        for (int i = 0; i < nParticles; i++)
+        {
+          this.particles.add(new HashMap<Node, DivideConquerMCAlgorithm.Particle>());
+          this.weights[i] = 1.0/((double) nParticles);
+        }
+    }
+
   }
   
   public static class Particle
@@ -125,17 +155,93 @@ public class DivideConquerMCAlgorithm
     return result;
   }
   
-//  private void standardSMC(Random rand)
-//  {
-//    // list nodes in postorder
-//    List<Node> 
-//  }
+  public void standardSMC_sample(Random rand)
+  {
+    if (!options.useBetaProposal || varianceRatio(11.0) != 0.0)
+      throw new RuntimeException(); // some assumptions made for simplicity
+    
+    // list nodes in postorder
+    List<Node> traversalOrder = dataset.postOrder();
+    
+    StandardParticleApproximation approximation = new StandardParticleApproximation(options.nParticles, true);
+    
+    for (Node node : traversalOrder)
+    {
+      double maxLogLikelihood = Double.NEGATIVE_INFINITY;
+      Set<Node> children = dataset.getChildren(node);
+      if  (children.isEmpty())
+      {
+        Particle[] particles = _leafParticleApproximation(rand, node).particles;
+        for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
+          approximation.particles.get(particleIndex).put(node, particles[particleIndex]);
+      }
+      else
+      {
+        for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
+        {
+          double variance = sampleVariance(rand);
+          List<BrownianModelCalculator> childrenCalculators = Lists.newArrayList();
+          double logWeightUpdate = 0.0;
+          List<Node> childrenNodes = Lists.newArrayList();
+          for (Node child : children)
+          {
+            BrownianModelCalculator message = approximation.particles.get(particleIndex).get(child).message;
+            childrenCalculators.add(message);
+            childrenNodes.add(child);
+            logWeightUpdate = logWeightUpdate - message.logLikelihood();
+          }
+          BrownianModelCalculator combined = BrownianModelCalculator.combine(childrenCalculators, variance);
+          double combinedLogLikelihood = combined.logLikelihood();
+          logWeightUpdate += combinedLogLikelihood;
+          approximation.weights[particleIndex] *= Math.exp(logWeightUpdate);
+          if (combinedLogLikelihood > maxLogLikelihood)
+            maxLogLikelihood = combinedLogLikelihood;
+          Particle newParticle = new Particle(combined, variance, childrenCalculators, node, childrenNodes);
+          approximation.particles.get(particleIndex).put(node, newParticle);
+        }
+        Multinomial.normalize(approximation.weights);
+      }
+      
+      double ess = SMCUtils.ess(approximation.weights);
+      double relativeEss = ess/nParticles;
+      
+      output.printWrite("ess", "level", node.level(), "nodeLabel", node.toString(), "ess", ess, "relativeEss", relativeEss);
+      
+      if (node.level() == 0)
+        output.printWrite("maxLL", "maxLL", maxLogLikelihood);
+      
+      output.flush();
+      
+      
+      // Note: make sure to deeply duplicate particles when doing resampling
+      if (relativeEss < 0.5)
+      {
+        StandardParticleApproximation newApprox = new StandardParticleApproximation(options.nParticles, false);
+        Counter<Integer> resampledCounts = SMCUtils.multinomialSampling(rand, approximation.weights, nParticles);
+        
+        for (int oldPopulationIndex : resampledCounts.keySet())
+          for (int multiplicity = 0; multiplicity < resampledCounts.getCount(oldPopulationIndex); multiplicity++)
+          {
+            Map<Node, Particle> copy = new HashMap<Node,Particle>(approximation.particles.get(oldPopulationIndex));
+            newApprox.particles.add(copy);
+          }
+        for (int i = 0; i < options.nParticles; i++)
+          newApprox.weights[i] = 1.0/((double)options.nParticles);
+        
+        approximation = newApprox;
+      }
+      
+    }
+  }
+  
+
   
   private ParticleApproximation recurse(Random rand, Node node)
   {
     Set<Node> children = dataset.getChildren(node);
     
     ParticleApproximation result;
+    double maxLogLikelihood = Double.NEGATIVE_INFINITY;
     if (children.isEmpty())
       result = _leafParticleApproximation(rand, node);
     else
@@ -164,7 +270,12 @@ public class DivideConquerMCAlgorithm
         
         // compute weight
         BrownianModelCalculator combined = BrownianModelCalculator.combine(sampledCalculators, variance);
-        weight += combined.logLikelihood();
+        double combinedLogLikelihood = combined.logLikelihood();
+        weight += combinedLogLikelihood;
+        
+        if (combinedLogLikelihood > maxLogLikelihood)
+          maxLogLikelihood = combinedLogLikelihood;
+        
         for (BrownianModelCalculator childCalculator : sampledCalculators)
           weight = weight - childCalculator.logLikelihood();
         weight = weight + varianceRatio(variance);
@@ -185,6 +296,10 @@ public class DivideConquerMCAlgorithm
     double ess = SMCUtils.ess(result.probabilities);
     double relativeEss = ess/nParticles;
     output.printWrite("ess", "level", node.level(), "nodeLabel", node.toString(), "ess", ess, "relativeEss", relativeEss);
+    
+    if (node.level() == 0)
+      output.printWrite("maxLL", "maxLL", maxLogLikelihood);
+    
     output.flush();
     
     // perform resampling
