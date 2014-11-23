@@ -12,7 +12,6 @@ import multilevel.Node;
 import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
@@ -20,18 +19,14 @@ import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
 import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
-import bayonet.math.NumericalUtils;
 import bayonet.math.SpecialFunctions;
 import bayonet.rplot.PlotHistogram;
 import briefj.OutputManager;
 import briefj.collections.Counter;
-import briefj.collections.Tree;
 import briefj.opt.Option;
 import briefj.run.Results;
 
-import com.beust.jcommander.internal.Maps;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 
 
