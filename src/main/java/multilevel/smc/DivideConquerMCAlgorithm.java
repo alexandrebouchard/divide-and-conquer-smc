@@ -48,9 +48,9 @@ public class DivideConquerMCAlgorithm
     @Option public boolean useBetaProposal = true;
   }
   
-  public void dc_sample(Random rand)
+  public ParticleApproximation dc_sample(Random rand)
   {
-    recurse(rand, dataset.getRoot());
+    return recurse(rand, dataset.getRoot());
   }
   
   public DivideConquerMCAlgorithm(MultiLevelDataset dataset, MultiLevelDcSmcOptions options)
@@ -61,7 +61,7 @@ public class DivideConquerMCAlgorithm
     output.setOutputFolder(Results.getResultFolder());
   }
 
-  public static class ParticleApproximation
+  public static class ParticleApproximation  implements LogDensityApprox
   {
     public final Particle [] particles;
     public final double [] probabilities;
@@ -75,9 +75,21 @@ public class DivideConquerMCAlgorithm
       int index = Multinomial.sampleMultinomial(rand, probabilities);
       return particles[index];
     }
+    @Override
+    public double sampleNextLogDensity(Random random)
+    {
+      int index = Multinomial.sampleMultinomial(random, probabilities);
+      Particle rootParticle =  particles[index];
+      return rootParticle.descendentObservationLogLikelihood + rootParticle.message.logLikelihood();
+    }
   }
   
-  public static class StandardParticleApproximation
+  public static interface LogDensityApprox
+  {
+    public double sampleNextLogDensity(Random random);
+  }
+  
+  public class StandardParticleApproximation implements LogDensityApprox
   {
     public final List<Map<Node, Particle>> particles;
     public final double [] weights;
@@ -96,6 +108,19 @@ public class DivideConquerMCAlgorithm
           this.particles.add(new LinkedHashMap<Node, DivideConquerMCAlgorithm.Particle>());
           this.weights[i] = 1.0/((double) nParticles);
         }
+    }
+    
+    public Map<Node,Particle> sample(Random random)
+    {
+      int index = Multinomial.sampleMultinomial(random, weights);
+      return particles.get(index);
+    }
+    
+    public double sampleNextLogDensity(Random random)
+    {
+      int index = Multinomial.sampleMultinomial(random, weights);
+      Particle rootParticle =  particles.get(index).get(dataset.getRoot());
+      return rootParticle.descendentObservationLogLikelihood + rootParticle.message.logLikelihood();
     }
 
   }
@@ -152,7 +177,7 @@ public class DivideConquerMCAlgorithm
     return result;
   }
   
-  public void standardSMC_sample(Random rand)
+  public StandardParticleApproximation standardSMC_sample(Random rand)
   {
     if (!options.useBetaProposal || varianceRatio(11.0) != 0.0)
       throw new RuntimeException(); // some assumptions made for simplicity
@@ -234,6 +259,8 @@ public class DivideConquerMCAlgorithm
       }
       
     }
+    
+    return approximation;
   }
   
 

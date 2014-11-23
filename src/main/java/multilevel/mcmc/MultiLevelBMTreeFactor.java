@@ -4,11 +4,13 @@ import java.util.List;
 
 import com.beust.jcommander.internal.Lists;
 
+import multilevel.MultiLevelMain;
 import multilevel.Node;
 import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
 import multilevel.smc.BrownianModelCalculator;
 import multilevel.smc.DivideConquerMCAlgorithm;
+import multilevel.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.math.SpecialFunctions;
 import blang.annotations.FactorArgument;
 import blang.annotations.FactorComponent;
@@ -64,6 +66,21 @@ public class MultiLevelBMTreeFactor implements Factor
     for (Node child : data.getChildren(node))
       children.add(new MultiLevelBMTreeFactor(this, data, child));
     componentsList = children.size() > 0 ? new FactorComponentList<MultiLevelBMTreeFactor>(children) : null;
+    
+    if (MultiLevelMain.standardSMC_sample != null)
+    {
+      Particle particle = MultiLevelMain.standardSMC_sample.get(node);
+      if (children.size() == 0)
+        contents.setValue(particle.message.message[0]);
+      else
+        contents.setValue(particle.variance);
+    }
+    else
+      if (children.size() == 0)
+      {
+        Datum d = data.getDatum(node);
+        contents.setValue(SpecialFunctions.logistic((d.numberOfSuccesses+1)/(d.numberOfTrials+2)));
+      }
   }
 
   @Override
