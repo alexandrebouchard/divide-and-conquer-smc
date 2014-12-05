@@ -17,9 +17,12 @@ import bayonet.coda.CodaParser;
 import bayonet.coda.SimpleCodaPlots;
 import blang.MCMCAlgorithm;
 import blang.MCMCFactory;
+import blang.mcmc.RealVariableMHProposal;
+import blang.mcmc.RealVariablePeskunTypeMove;
 import blang.processing.LogDensityProcessor;
 import blang.processing.Processor;
 import blang.processing.ProcessorContext;
+import blang.variables.RealVariable;
 import blang.variables.RealVariableProcessor;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
@@ -75,10 +78,16 @@ public class MultiLevelMain implements Runnable, Processor
     }
     else if (samplingMethod == SamplingMethod.GIBBS)
     {
+      if (dcsmcOption.variancePriorRate != 1.0)
+        throw new RuntimeException();
+      
       MultiLevelModel modelSpec = new MultiLevelModel(dataset);
+      factory.excludeNodeMove(RealVariablePeskunTypeMove.class);
+      factory.addNodeMove(RealVariable.class, RealVariableMHProposal.class);
       factory.addProcessor(new LogDensityProcessor());
       factory.excludeNodeProcessor(RealVariableProcessor.class);
       MCMCAlgorithm mcmc = factory.build(modelSpec, false);
+      System.out.println(mcmc);
       mcmc.run();
     }
     else
