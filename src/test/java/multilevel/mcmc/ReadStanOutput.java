@@ -142,7 +142,9 @@ public class ReadStanOutput implements Runnable
       return;
     
     nodesToPlot.add(GenerateStanModel.thetaNodeName(node));
-    nodesToPlot.add(GenerateStanModel.varianceNodeName(node));
+    
+    if (!dataset.getChildren(node).isEmpty())
+      nodesToPlot.add(GenerateStanModel.varianceNodeName(node));
     
     for (Node child : dataset.getChildren(node))
       readTopElements(child, level + 1);
