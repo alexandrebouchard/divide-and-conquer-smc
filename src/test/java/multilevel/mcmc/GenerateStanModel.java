@@ -76,10 +76,10 @@ public class GenerateStanModel implements Runnable
     return modelFile;
   }
 
-  private List<String> distributions = Lists.newArrayList();
+  private Set<String> distributions = Sets.newLinkedHashSet();
   private Set<String> parametersDeclarations = Sets.newLinkedHashSet();
   private Set<String> dataDeclaration = Sets.newLinkedHashSet();
-  private List<String> data = Lists.newArrayList();
+  private Set<String> data = Sets.newLinkedHashSet();
   
   public static String varianceNodeName(Node node)
   {

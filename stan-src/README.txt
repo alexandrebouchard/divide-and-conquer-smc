@@ -25,3 +25,5 @@ stan-src/final
 6) to get ESS:
 
 /Users/bouchard/Documents/workspace-cpp/cmdstan/bin/print
+
+ALSO: see ReadStanOutput
