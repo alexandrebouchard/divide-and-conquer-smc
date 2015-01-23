@@ -379,7 +379,9 @@ public class DivideConquerMCAlgorithm
     for (int c = 0; c < nChildren; c++)
     {
       String pathStr = result.particles[0].childrenNodes.get(c).toString();
-      PlotHistogram.from(deltaSamples[c]).withXLimit(-0.5, 0.5).withYLimit(0, 15).toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
+      PlotHistogram.from(deltaSamples[c])
+//        .withXLimit(-0.5, 0.5).withYLimit(0, 15)
+        .toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
       output.printWrite("deltaStats", "path", pathStr, "deltaMean", stats[c].getMean(), "deltaSD", stats[c].getStandardDeviation());
     }
     output.flush();
@@ -391,13 +393,16 @@ public class DivideConquerMCAlgorithm
     
     DescriptiveStatistics meanStats = new DescriptiveStatistics();
     double [] meanSamples = new double[options.nParticles];
+    double [] naturalSamples = new double[options.nParticles];
     double [] varianceSamples = children.isEmpty() ? null : new double[options.nParticles];
     DescriptiveStatistics varStats = children.isEmpty() ? null : new DescriptiveStatistics();
     for (int i = 0; i < options.nParticles; i++)
     {
       Particle p = result.particles[i % nParticles];
-      double meanPoint = inverseTransform(p.sampleValue(rand));
+      double naturalPoint = p.sampleValue(rand);
+      double meanPoint = inverseTransform(naturalPoint);
       meanStats.addValue(meanPoint);
+      naturalSamples[i] = naturalPoint;
       meanSamples[i] = meanPoint;
       if (varianceSamples != null)
       {
@@ -407,11 +412,16 @@ public class DivideConquerMCAlgorithm
     }
     File plotsFolder = Results.getFolderInResultFolder("histograms");
     String pathStr = node.toString();
-    PlotHistogram.from(meanSamples).withXLimit(0.6, 1.0).withYLimit(0, 25).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
+    PlotHistogram.from(naturalSamples).toPDF(new File(plotsFolder, pathStr + "_naturalParam.pdf"));
+    PlotHistogram.from(meanSamples)
+//      .withXLimit(0.6, 1.0).withYLimit(0, 25)
+      .toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
     output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
     if (varianceSamples != null)
     {
-      PlotHistogram.from(varianceSamples).withXLimit(0, 4.0).withYLimit(0, 5).toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
+      PlotHistogram.from(varianceSamples)
+//        .withXLimit(0, 4.0).withYLimit(0, 5)
+        .toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
       output.printWrite("varStats", "path", pathStr, "varMean", varStats.getMean(), "varSD", varStats.getStandardDeviation());
     }
     output.flush();    
