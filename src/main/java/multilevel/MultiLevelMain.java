@@ -1,9 +1,11 @@
-package multilevel;
+  package multilevel;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import com.google.common.collect.Lists;
 
@@ -98,6 +100,7 @@ public class MultiLevelMain implements Runnable, Processor
       List<Double> numbers = Lists.newArrayList();
       for (int i = 0; i < Math.min(1000, dcsmcOption.nParticles); i++)
         numbers.add(approx.sampleNextLogDensity(random));
+      System.out.println("meanLogLikelihood=" + mean(numbers));
       File loglDensityDir = Results.getFileInResultFolder("logDensity");
       File codaIndex = new File(loglDensityDir, "codaIndex");
       File codaContents=new File(loglDensityDir, "codaContents");
@@ -108,6 +111,15 @@ public class MultiLevelMain implements Runnable, Processor
   }
 
   
+  private double mean(List<Double> numbers)
+  {
+    SummaryStatistics stats = new SummaryStatistics();
+    for (double n : numbers)
+      stats.addValue(n);
+    return stats.getMean();
+  }
+
+
   @Override
   public void process(ProcessorContext context)
   {
