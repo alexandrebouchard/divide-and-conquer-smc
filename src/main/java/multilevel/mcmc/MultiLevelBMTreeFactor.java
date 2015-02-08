@@ -10,8 +10,9 @@ import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
 import multilevel.smc.BrownianModelCalculator;
 import multilevel.smc.DivideConquerMCAlgorithm;
-import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
+import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import multilevel.smc.DivideConquerMCAlgorithm.Particle;
+import bayonet.distributions.Exponential;
 import bayonet.math.SpecialFunctions;
 import blang.annotations.FactorArgument;
 import blang.annotations.FactorComponent;
@@ -32,6 +33,7 @@ public class MultiLevelBMTreeFactor implements Factor
   public final List<MultiLevelBMTreeFactor> children;
   public final Node node;
   public final MultiLevelDataset dataset;
+  private final MultiLevelModelOptions modelOptions;
   
   public static class FactorComponentList<T>
   {
@@ -58,14 +60,17 @@ public class MultiLevelBMTreeFactor implements Factor
   
   private final MultiLevelBMTreeFactor parent;
   
-  public MultiLevelBMTreeFactor(MultiLevelBMTreeFactor parent, MultiLevelDataset data, Node node)
+  public MultiLevelBMTreeFactor(MultiLevelBMTreeFactor parent, MultiLevelDataset data, Node node, MultiLevelModelOptions modelOptions)
   {
+    this.modelOptions = modelOptions;
+    if (!modelOptions.useTransform)
+      throw new RuntimeException();
     this.dataset = data;
     this.parent = parent;
     this.node = node;
     children = Lists.newArrayList();
     for (Node child : data.getChildren(node))
-      children.add(new MultiLevelBMTreeFactor(this, data, child));
+      children.add(new MultiLevelBMTreeFactor(this, data, child, modelOptions));
     componentsList = children.size() > 0 ? new FactorComponentList<MultiLevelBMTreeFactor>(children) : null;
     
     if (MultiLevelMain.standardSMC_sample != null)
@@ -110,7 +115,9 @@ public class MultiLevelBMTreeFactor implements Factor
     if (multiLevelBMTreeFactor.children.size() > 0)
     {
       double variance = multiLevelBMTreeFactor.contents.getValue();
-      sum += uniformLogDensity(variance, 0.0, MultiLevelDcSmcOptions.MAX_VAR);//Exponential.logDensity(variance, 1.0);
+      sum += modelOptions.useUniformVariance ? 
+          uniformLogDensity(variance, 0.0, modelOptions.maxVarianceIfUniform) :
+          Exponential.logDensity(variance, modelOptions.variancePriorRateIfExponential);
       for (MultiLevelBMTreeFactor child : multiLevelBMTreeFactor.children)
         sum += logVariancePriorDensity(child);
     }

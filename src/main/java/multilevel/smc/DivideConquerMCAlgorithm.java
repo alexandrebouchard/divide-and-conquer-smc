@@ -16,6 +16,7 @@ import multilevel.mcmc.MultiLevelBMTreeFactor;
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
+import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
 import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
@@ -38,17 +39,21 @@ public class DivideConquerMCAlgorithm
   private final int nParticles;
   private final OutputManager output = new OutputManager();
   private final MultiLevelDcSmcOptions options;
+  private final MultiLevelModelOptions modelOptions;
   
+  public static class MultiLevelModelOptions
+  {
+    @Option public boolean useTransform = true;
+    @Option public boolean useUniformVariance = true;
+    @Option public double maxVarianceIfUniform = 5.0;
+    @Option public double variancePriorRateIfExponential = 1.0;
+  }
   
   public static class MultiLevelDcSmcOptions
   {
     @Option public int nParticles = 1000;
     @Option public int levelCutOffForOutput = 2;
-//    @Option public double variancePriorRate = 1.0;
-    @Option public boolean useTransform = true;
     @Option public boolean useBetaProposal = true;
-    
-    public static final double MAX_VAR = 5.0;
   }
   
   public ParticleApproximation dc_sample(Random rand)
@@ -56,8 +61,9 @@ public class DivideConquerMCAlgorithm
     return recurse(rand, dataset.getRoot());
   }
   
-  public DivideConquerMCAlgorithm(MultiLevelDataset dataset, MultiLevelDcSmcOptions options)
+  public DivideConquerMCAlgorithm(MultiLevelDataset dataset, MultiLevelDcSmcOptions options, MultiLevelModelOptions modelOptions)
   {
+    this.modelOptions = modelOptions;
     this.dataset = dataset;
     this.nParticles = options.nParticles;
     this.options = options;
@@ -469,12 +475,16 @@ public class DivideConquerMCAlgorithm
   
   private double varianceLogPrior(double variance)
   {
-    return MultiLevelBMTreeFactor.uniformLogDensity(variance, 0.0, MultiLevelDcSmcOptions.MAX_VAR);
+    return modelOptions.useUniformVariance ? 
+        MultiLevelBMTreeFactor.uniformLogDensity(variance, 0.0, modelOptions.maxVarianceIfUniform) :
+        Exponential.logDensity(variance, modelOptions.variancePriorRateIfExponential);
   }
 
   private double sampleVariance(Random rand)
   {
-    return Uniform.generate(rand, 0.0, MultiLevelDcSmcOptions.MAX_VAR);//Exponential.generate(rand, options.variancePriorRate );
+    return modelOptions.useUniformVariance ?
+        Uniform.generate(rand, 0.0, modelOptions.maxVarianceIfUniform) :
+        Exponential.generate(rand, modelOptions.variancePriorRateIfExponential);
   }
 
   private ParticleApproximation _leafParticleApproximation(Random rand, Node node)
@@ -524,7 +534,7 @@ public class DivideConquerMCAlgorithm
 
   private double transform(double numberOnSimplex)
   {
-    if (options.useTransform )
+    if (modelOptions.useTransform )
       return SpecialFunctions.logit(numberOnSimplex);
     else
       return numberOnSimplex;
@@ -532,7 +542,7 @@ public class DivideConquerMCAlgorithm
   
   private double inverseTransform(double realNumber)
   {
-    if (options.useTransform)
+    if (modelOptions.useTransform)
       return SpecialFunctions.logistic(realNumber);
     else
       return realNumber;

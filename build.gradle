@@ -32,12 +32,12 @@ apply plugin: 'versions'
 
 dependencies {
   compile group: 'com.google.guava', name: 'guava', version: '18.0'
-  testCompile group: 'junit', name: 'junit', version: '4.11'
-  compile group: 'junit', name: 'junit', version: '4.11'
+  testCompile group: 'junit', name: 'junit', version: '4.12'
+  compile group: 'junit', name: 'junit', version: '4.12'
   compile group: 'ca.ubc.stat', name: 'tutorialj', version: '2.0.2'
   compile group: 'ca.ubc.stat', name: 'binc', version: '1.2.1'
-  compile group: 'ca.ubc.stat', name: 'briefj', version: '2.4.0'
-  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.6'
+  compile group: 'ca.ubc.stat', name: 'briefj', version: '2.4.3'
+  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.10'
 }
 
 

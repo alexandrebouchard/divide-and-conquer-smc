@@ -14,6 +14,7 @@ import multilevel.mcmc.MultiLevelModel;
 import multilevel.smc.DivideConquerMCAlgorithm;
 import multilevel.smc.DivideConquerMCAlgorithm.LogDensityApprox;
 import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
+import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import multilevel.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.coda.CodaParser;
 import bayonet.coda.SimpleCodaPlots;
@@ -22,8 +23,6 @@ import blang.MCMCFactory;
 import blang.mcmc.RealVariableMHProposal;
 import blang.mcmc.RealVariablePeskunTypeMove;
 import blang.processing.LogDensityProcessor;
-import blang.processing.Processor;
-import blang.processing.ProcessorContext;
 import blang.variables.RealVariable;
 import blang.variables.RealVariableProcessor;
 import briefj.opt.Option;
@@ -33,10 +32,11 @@ import briefj.run.Results;
 
 
 
-public class MultiLevelMain implements Runnable, Processor
+public class MultiLevelMain implements Runnable
 {
   @Option(required = true) public File inputData;
   @OptionSet(name = "dc") public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
+  @OptionSet(name = "model") public MultiLevelModelOptions modelOptions = new MultiLevelModelOptions();
   @Option public Random mainRandom = new Random(1);
   @Option public SamplingMethod samplingMethod = SamplingMethod.DC;
   
@@ -44,6 +44,7 @@ public class MultiLevelMain implements Runnable, Processor
   
   @OptionSet(name = "factory")
   public final MCMCFactory factory = new MCMCFactory();
+  
   
   
   public static enum SamplingMethod { DC, STD, GIBBS }
@@ -62,7 +63,7 @@ public class MultiLevelMain implements Runnable, Processor
   public void run()
   {
     MultiLevelDataset dataset = new MultiLevelDataset(inputData);
-    DivideConquerMCAlgorithm smc = new DivideConquerMCAlgorithm(dataset, dcsmcOption);
+    DivideConquerMCAlgorithm smc = new DivideConquerMCAlgorithm(dataset, dcsmcOption, modelOptions);
     
     if (initGibbsWithStdSMC && samplingMethod == SamplingMethod.GIBBS)
       standardSMC_sample = smc.standardSMC_sample(mainRandom).sample(mainRandom);
@@ -75,21 +76,18 @@ public class MultiLevelMain implements Runnable, Processor
     }
     else if (samplingMethod == SamplingMethod.STD)
     {
-      System.out.println("Starting standard sampling");
+      System.out.println("Starting standard SMC sampling");
       approx = smc.standardSMC_sample(mainRandom);
     }
     else if (samplingMethod == SamplingMethod.GIBBS)
-    {
-//      if (dcsmcOption.variancePriorRate != 1.0)
-//        throw new RuntimeException();
-      
-      MultiLevelModel modelSpec = new MultiLevelModel(dataset);
+    {      
+      System.out.println("Starting GIBBS sampling");
+      MultiLevelModel modelSpec = new MultiLevelModel(dataset, modelOptions);
       factory.excludeNodeMove(RealVariablePeskunTypeMove.class);
       factory.addNodeMove(RealVariable.class, RealVariableMHProposal.class);
       factory.addProcessor(new LogDensityProcessor());
       factory.excludeNodeProcessor(RealVariableProcessor.class);
       MCMCAlgorithm mcmc = factory.build(modelSpec, false);
-      System.out.println(mcmc);
       mcmc.run();
     }
     else
@@ -109,7 +107,6 @@ public class MultiLevelMain implements Runnable, Processor
       simpleCodaPlots.toPDF(new File(loglDensityDir, "plot.pdf"));
     }
   }
-
   
   private double mean(List<Double> numbers)
   {
@@ -118,12 +115,4 @@ public class MultiLevelMain implements Runnable, Processor
       stats.addValue(n);
     return stats.getMean();
   }
-
-
-  @Override
-  public void process(ProcessorContext context)
-  {
-    System.out.println(context.getModel().logDensity());
-  }
-
 }
