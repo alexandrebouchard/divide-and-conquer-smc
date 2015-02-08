@@ -19,6 +19,7 @@ import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
 import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
+import bayonet.distributions.Uniform;
 import bayonet.math.SpecialFunctions;
 import bayonet.rplot.PlotHistogram;
 import briefj.OutputManager;
@@ -43,9 +44,11 @@ public class DivideConquerMCAlgorithm
   {
     @Option public int nParticles = 1000;
     @Option public int levelCutOffForOutput = 2;
-    @Option public double variancePriorRate = 1.0;
+//    @Option public double variancePriorRate = 1.0;
     @Option public boolean useTransform = true;
     @Option public boolean useBetaProposal = true;
+    
+    public static final double MAX_VAR = 5.0;
   }
   
   public ParticleApproximation dc_sample(Random rand)
@@ -451,7 +454,7 @@ public class DivideConquerMCAlgorithm
 
   private double sampleVariance(Random rand)
   {
-    return Exponential.generate(rand, options.variancePriorRate );
+    return Uniform.generate(rand, 0.0, MultiLevelDcSmcOptions.MAX_VAR);//Exponential.generate(rand, options.variancePriorRate );
   }
 
   private ParticleApproximation _leafParticleApproximation(Random rand, Node node)

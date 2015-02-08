@@ -10,8 +10,10 @@ import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
 import multilevel.smc.BrownianModelCalculator;
 import multilevel.smc.DivideConquerMCAlgorithm;
+import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
 import multilevel.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.distributions.Exponential;
+import bayonet.distributions.Uniform;
 import bayonet.math.SpecialFunctions;
 import blang.annotations.FactorArgument;
 import blang.annotations.FactorComponent;
@@ -110,12 +112,19 @@ public class MultiLevelBMTreeFactor implements Factor
     if (multiLevelBMTreeFactor.children.size() > 0)
     {
       double variance = multiLevelBMTreeFactor.contents.getValue();
-      sum += Exponential.logDensity(variance, 1.0);
+      sum += uniformLogDensity(variance, 0.0, MultiLevelDcSmcOptions.MAX_VAR);//Exponential.logDensity(variance, 1.0);
       for (MultiLevelBMTreeFactor child : multiLevelBMTreeFactor.children)
         sum += logVariancePriorDensity(child);
     }
     
     return sum;
+  }
+  
+  private static double uniformLogDensity(double x, double min, double max)
+  {
+    if (x < min) return Double.NEGATIVE_INFINITY;
+    if (x >= max) return Double.NEGATIVE_INFINITY;
+    return - Math.log(max - min);
   }
 
   private  double logEmissionDensity(

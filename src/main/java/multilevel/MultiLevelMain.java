@@ -80,8 +80,8 @@ public class MultiLevelMain implements Runnable, Processor
     }
     else if (samplingMethod == SamplingMethod.GIBBS)
     {
-      if (dcsmcOption.variancePriorRate != 1.0)
-        throw new RuntimeException();
+//      if (dcsmcOption.variancePriorRate != 1.0)
+//        throw new RuntimeException();
       
       MultiLevelModel modelSpec = new MultiLevelModel(dataset);
       factory.excludeNodeMove(RealVariablePeskunTypeMove.class);
