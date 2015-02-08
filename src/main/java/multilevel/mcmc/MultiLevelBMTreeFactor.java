@@ -120,7 +120,7 @@ public class MultiLevelBMTreeFactor implements Factor
     return sum;
   }
   
-  private static double uniformLogDensity(double x, double min, double max)
+  public static double uniformLogDensity(double x, double min, double max)
   {
     if (x < min) return Double.NEGATIVE_INFINITY;
     if (x >= max) return Double.NEGATIVE_INFINITY;

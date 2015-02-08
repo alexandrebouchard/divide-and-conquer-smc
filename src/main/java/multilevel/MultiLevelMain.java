@@ -100,7 +100,7 @@ public class MultiLevelMain implements Runnable, Processor
       List<Double> numbers = Lists.newArrayList();
       for (int i = 0; i < Math.min(1000, dcsmcOption.nParticles); i++)
         numbers.add(approx.sampleNextLogDensity(random));
-      System.out.println("meanLogLikelihood=" + mean(numbers));
+      System.out.println("meanLogDensity=" + mean(numbers));
       File loglDensityDir = Results.getFileInResultFolder("logDensity");
       File codaIndex = new File(loglDensityDir, "codaIndex");
       File codaContents=new File(loglDensityDir, "codaContents");

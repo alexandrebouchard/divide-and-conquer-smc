@@ -11,6 +11,8 @@ import java.util.Set;
 import multilevel.Node;
 import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
+import multilevel.mcmc.MultiLevelBMTreeFactor;
+import multilevel.mcmc.MultiLevelModel;
 
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
@@ -83,7 +85,7 @@ public class DivideConquerMCAlgorithm
     {
       int index = Multinomial.sampleMultinomial(random, probabilities);
       Particle rootParticle =  particles[index];
-      return rootParticle.descendentObservationLogLikelihood + rootParticle.message.logLikelihood();
+      return rootParticle.logDensity();
     }
   }
   
@@ -123,7 +125,7 @@ public class DivideConquerMCAlgorithm
     {
       int index = Multinomial.sampleMultinomial(random, weights);
       Particle rootParticle =  particles.get(index).get(dataset.getRoot());
-      return rootParticle.descendentObservationLogLikelihood + rootParticle.message.logLikelihood();
+      return rootParticle.logDensity();
     }
 
   }
@@ -134,9 +136,16 @@ public class DivideConquerMCAlgorithm
     public final BrownianModelCalculator message;
     public final List<BrownianModelCalculator> childrenMessages; // used to compute delta statistics
     public final double descendentObservationLogLikelihood; // product over all the leaves under the node of the conditionals of data given imputed preterminals
+    public final double descendentVarianceDensity;
     public final List<Node> childrenNodes;
     public final double variance;
-    private Particle(BrownianModelCalculator message, double variance, List<BrownianModelCalculator> childrenMessages, Node node, List<Node> childrenNodes, double descendentObservationLogLikelihood)
+    private Particle(
+        BrownianModelCalculator message, 
+        double variance, 
+        List<BrownianModelCalculator> childrenMessages, 
+        Node node, List<Node> childrenNodes, 
+        double descendentObservationLogLikelihood,
+        double descendentVarianceDensity)
     {
       this.message = message;
       this.variance = variance;
@@ -144,11 +153,16 @@ public class DivideConquerMCAlgorithm
       this.node = node;
       this.childrenNodes = childrenNodes;
       this.descendentObservationLogLikelihood = descendentObservationLogLikelihood;
+      this.descendentVarianceDensity = descendentVarianceDensity;
+    }
+    public double logDensity()
+    {
+      return descendentObservationLogLikelihood + message.logLikelihood() + descendentVarianceDensity;
     }
     @SuppressWarnings("unchecked")
     public Particle(BrownianModelCalculator leaf, Node node, double descendentObservationLogLikelihood)
     {
-      this(leaf, Double.NaN, Collections.EMPTY_LIST, node, Collections.EMPTY_LIST, descendentObservationLogLikelihood);
+      this(leaf, Double.NaN, Collections.EMPTY_LIST, node, Collections.EMPTY_LIST, descendentObservationLogLikelihood, 0.0);
     }
     public double sampleValue(Random rand)
     {
@@ -208,7 +222,7 @@ public class DivideConquerMCAlgorithm
           List<BrownianModelCalculator> childrenCalculators = Lists.newArrayList();
           double logWeightUpdate = 0.0;
           List<Node> childrenNodes = Lists.newArrayList();
-          double descLogLikelihoods = 0.0;
+          double descLogLikelihoods = 0.0, descVar = varianceLogPrior(variance);
           for (Node child : children)
           {
             Particle childParticle = approximation.particles.get(particleIndex).get(child);
@@ -217,13 +231,14 @@ public class DivideConquerMCAlgorithm
             childrenNodes.add(child);
             logWeightUpdate = logWeightUpdate - message.logLikelihood();
             descLogLikelihoods += childParticle.descendentObservationLogLikelihood;
+            descVar += childParticle.descendentVarianceDensity;
           }
           BrownianModelCalculator combined = BrownianModelCalculator.combine(childrenCalculators, variance);
           double combinedLogLikelihood = combined.logLikelihood();
           logWeightUpdate += combinedLogLikelihood;
           approximation.weights[particleIndex] *= Math.exp(logWeightUpdate);
           
-          Particle newParticle = new Particle(combined, variance, childrenCalculators, node, childrenNodes, descLogLikelihoods);
+          Particle newParticle = new Particle(combined, variance, childrenCalculators, node, childrenNodes, descLogLikelihoods, descVar);
           approximation.particles.get(particleIndex).put(node, newParticle);
           
           if (combinedLogLikelihood + newParticle.descendentObservationLogLikelihood > maxLogLikelihood)
@@ -294,6 +309,7 @@ public class DivideConquerMCAlgorithm
         List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
         List<Node> childrenNode = Lists.newArrayList();
         double descParticleObsLogl = 0.0;
+        double descVar = varianceLogPrior(variance);
         for (ParticleApproximation childApprox : childrenApproximations)
         {
           Particle childParticle = childApprox.particles[particleIndex];
@@ -301,6 +317,7 @@ public class DivideConquerMCAlgorithm
           weight += childApprox.probabilities[particleIndex];
           childrenNode.add(childApprox.particles[particleIndex].node);
           descParticleObsLogl += childParticle.descendentObservationLogLikelihood;
+          descVar += childParticle.descendentVarianceDensity;
         }
         
         // compute weight
@@ -313,7 +330,7 @@ public class DivideConquerMCAlgorithm
         weight = weight + varianceRatio(variance);
         
         // add both qts to result
-        Particle newParticle = new Particle(combined, variance, sampledCalculators, node, childrenNode, descParticleObsLogl);
+        Particle newParticle = new Particle(combined, variance, sampledCalculators, node, childrenNode, descParticleObsLogl, descVar);
         result.particles[particleIndex] = newParticle;
         result.probabilities[particleIndex] = weight;
         
@@ -450,6 +467,11 @@ public class DivideConquerMCAlgorithm
   private double varianceRatio(double variance)
   {
     return 0; // assume we are sampling variance from prior for now
+  }
+  
+  private double varianceLogPrior(double variance)
+  {
+    return MultiLevelBMTreeFactor.uniformLogDensity(variance, 0.0, MultiLevelDcSmcOptions.MAX_VAR);
   }
 
   private double sampleVariance(Random rand)
