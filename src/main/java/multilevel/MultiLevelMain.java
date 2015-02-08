@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import com.google.common.collect.Lists;
@@ -25,6 +26,7 @@ import blang.mcmc.RealVariablePeskunTypeMove;
 import blang.processing.LogDensityProcessor;
 import blang.variables.RealVariable;
 import blang.variables.RealVariableProcessor;
+import briefj.OutputManager;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
@@ -98,7 +100,7 @@ public class MultiLevelMain implements Runnable
       List<Double> numbers = Lists.newArrayList();
       for (int i = 0; i < Math.min(1000, dcsmcOption.nParticles); i++)
         numbers.add(approx.sampleNextLogDensity(mainRandom));
-      System.out.println("meanLogDensity=" + mean(numbers));
+      printMeanDensityStats(numbers);
       File loglDensityDir = Results.getFileInResultFolder("logDensity");
       File codaIndex = new File(loglDensityDir, "codaIndex");
       File codaContents=new File(loglDensityDir, "codaContents");
@@ -108,11 +110,23 @@ public class MultiLevelMain implements Runnable
     }
   }
   
-  private double mean(List<Double> numbers)
+  private static void printMeanDensityStats(List<Double> samples)
   {
-    SummaryStatistics stats = new SummaryStatistics();
-    for (double n : numbers)
-      stats.addValue(n);
-    return stats.getMean();
+    SummaryStatistics statistics = new SummaryStatistics();
+    for (double sample : samples)
+      statistics.addValue(sample);
+    String statString = statistics.toString();
+    String[] sepStats = statString.split("\n");
+    String[] toWrite = null; 
+    for (int i = 1; i < sepStats.length; i++) // avoid the first element; serves as an unneeded header
+    {
+      String statSplit = sepStats[i];
+      String[] stat = statSplit.split(":");
+      toWrite = ArrayUtils.addAll(toWrite, stat);
+    }
+    OutputManager output = new OutputManager();
+    output.setOutputFolder(Results.getResultFolder());
+    output.printWrite("logDensity-summary", (Object []) toWrite);
+    output.close();
   }
 }
