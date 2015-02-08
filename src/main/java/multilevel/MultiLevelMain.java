@@ -37,7 +37,7 @@ public class MultiLevelMain implements Runnable, Processor
 {
   @Option(required = true) public File inputData;
   @OptionSet(name = "dc") public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
-  @Option public Random random = new Random(1);
+  @Option public Random mainRandom = new Random(1);
   @Option public SamplingMethod samplingMethod = SamplingMethod.DC;
   
   @Option public boolean initGibbsWithStdSMC = false;
@@ -65,18 +65,18 @@ public class MultiLevelMain implements Runnable, Processor
     DivideConquerMCAlgorithm smc = new DivideConquerMCAlgorithm(dataset, dcsmcOption);
     
     if (initGibbsWithStdSMC && samplingMethod == SamplingMethod.GIBBS)
-      standardSMC_sample = smc.standardSMC_sample(random).sample(random);
+      standardSMC_sample = smc.standardSMC_sample(mainRandom).sample(mainRandom);
     
     LogDensityApprox approx = null;
     if (samplingMethod == SamplingMethod.DC)  
     {
       System.out.println("Starting DC sampling");
-      approx = smc.dc_sample(random);
+      approx = smc.dc_sample(mainRandom);
     }
     else if (samplingMethod == SamplingMethod.STD)
     {
       System.out.println("Starting standard sampling");
-      approx = smc.standardSMC_sample(random);
+      approx = smc.standardSMC_sample(mainRandom);
     }
     else if (samplingMethod == SamplingMethod.GIBBS)
     {
@@ -99,7 +99,7 @@ public class MultiLevelMain implements Runnable, Processor
     {
       List<Double> numbers = Lists.newArrayList();
       for (int i = 0; i < Math.min(1000, dcsmcOption.nParticles); i++)
-        numbers.add(approx.sampleNextLogDensity(random));
+        numbers.add(approx.sampleNextLogDensity(mainRandom));
       System.out.println("meanLogDensity=" + mean(numbers));
       File loglDensityDir = Results.getFileInResultFolder("logDensity");
       File codaIndex = new File(loglDensityDir, "codaIndex");

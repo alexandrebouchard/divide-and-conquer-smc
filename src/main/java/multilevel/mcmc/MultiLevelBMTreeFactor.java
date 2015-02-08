@@ -12,8 +12,6 @@ import multilevel.smc.BrownianModelCalculator;
 import multilevel.smc.DivideConquerMCAlgorithm;
 import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
 import multilevel.smc.DivideConquerMCAlgorithm.Particle;
-import bayonet.distributions.Exponential;
-import bayonet.distributions.Uniform;
 import bayonet.math.SpecialFunctions;
 import blang.annotations.FactorArgument;
 import blang.annotations.FactorComponent;
