@@ -22,8 +22,11 @@ public class GenerateStanModel implements Runnable
 {
   @InputFile
   @Option(required = true) public File inputData;
+
+  @Option 
+  public String stanHome = "/Users/bouchard/Documents/workspace-cpp/cmdstan";
+  
   private MultiLevelDataset dataset;
-  @Option public String stanHome = "/Users/bouchard/Documents/workspace-cpp/cmdstan";
 
   public static void main(String[] args)
   {

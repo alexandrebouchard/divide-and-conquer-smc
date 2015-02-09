@@ -29,6 +29,7 @@ import blang.processing.LogDensityProcessor;
 import blang.variables.RealVariable;
 import blang.variables.RealVariableProcessor;
 import briefj.OutputManager;
+import briefj.opt.InputFile;
 import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
@@ -38,22 +39,30 @@ import briefj.run.Results;
 
 public class MultiLevelMain implements Runnable
 {
-  @Option(required = true) public File inputData;
-  @OptionSet(name = "dc") public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
-  @OptionSet(name = "model") public MultiLevelModelOptions modelOptions = new MultiLevelModelOptions();
-  @Option public Random mainRandom = new Random(1);
-  @Option public SamplingMethod samplingMethod = SamplingMethod.DC;
+  @InputFile
+  @Option(required = true) 
+  public File inputData;
   
-  @Option public boolean initGibbsWithStdSMC = false;
+  @OptionSet(name = "dc") 
+  public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
+  
+  @OptionSet(name = "model") 
+  public MultiLevelModelOptions modelOptions = new MultiLevelModelOptions();
+  
+  @Option 
+  public Random mainRandom = new Random(1);
+  
+  @Option 
+  public SamplingMethod samplingMethod = SamplingMethod.DC;
+  
+  @Option 
+  public boolean initGibbsWithStdSMC = false;
   
   @OptionSet(name = "factory")
   public final MCMCFactory factory = new MCMCFactory();
   
   public static enum SamplingMethod { DC, STD, GIBBS }
 
-  /**
-   * @param args
-   */
   public static void main(String[] args)
   {
     Mains.instrumentedRun(args, new MultiLevelMain());
