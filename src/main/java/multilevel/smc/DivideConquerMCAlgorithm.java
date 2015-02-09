@@ -21,6 +21,7 @@ import bayonet.distributions.Multinomial;
 import bayonet.distributions.Normal;
 import bayonet.distributions.Random2RandomGenerator;
 import bayonet.distributions.Uniform;
+import bayonet.math.NumericalUtils;
 import bayonet.math.SpecialFunctions;
 import bayonet.rplot.PlotHistogram;
 import briefj.OutputManager;
@@ -54,10 +55,13 @@ public class DivideConquerMCAlgorithm
     @Option public int nParticles = 1000;
     @Option public int levelCutOffForOutput = 2;
     @Option public boolean useBetaProposal = true;
+    @Option public double essThreshold = 1.0;
   }
   
   public ParticleApproximation dc_sample(Random rand)
   {
+    if (options.essThreshold != 1.0)
+      throw new RuntimeException();
     return recurse(rand, dataset.getRoot());
   }
   
@@ -263,7 +267,7 @@ public class DivideConquerMCAlgorithm
       
       
       // Note: make sure to deeply duplicate particles when doing resampling
-      if (relativeEss < 0.5)
+      if (relativeEss < options.essThreshold + NumericalUtils.THRESHOLD )//0.5)
       {
         StandardParticleApproximation newApprox = new StandardParticleApproximation(options.nParticles, false);
         Counter<Integer> resampledCounts = SMCUtils.multinomialSampling(rand, approximation.weights, nParticles);
