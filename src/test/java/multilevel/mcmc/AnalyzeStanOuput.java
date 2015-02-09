@@ -79,7 +79,7 @@ public class AnalyzeStanOuput implements Runnable
     @Override
     public double getVariance(Node n)
     {
-      return Double.parseDouble(stanSample.get("var_" + n.toString()));
+      return Double.parseDouble(stanSample.get("var_" + n.toString().replace('-', '_')));
     }
   }
 
