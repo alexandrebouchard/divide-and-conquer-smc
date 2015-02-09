@@ -91,7 +91,6 @@ public class RunStan implements Runnable
       double curLogDensity = model.multiLevelBMTreeFactor.logDensity();
       samples.add(curLogDensity);
     }
-    PlotHistogram.from(samples).toPDF(Results.getFileInResultFolder("logDensity-histogram.pdf"));
     MultiLevelMain.printMeanDensityStats(samples);
   }
   

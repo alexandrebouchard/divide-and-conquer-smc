@@ -103,12 +103,6 @@ public class MultiLevelMain implements Runnable
       for (int i = 0; i < Math.min(1000, dcsmcOption.nParticles); i++)
         numbers.add(approx.sampleNextLogDensity(mainRandom));
       printMeanDensityStats(numbers);
-      File loglDensityDir = Results.getFileInResultFolder("logDensity");
-      File codaIndex = new File(loglDensityDir, "codaIndex");
-      File codaContents=new File(loglDensityDir, "codaContents");
-      CodaParser.listToCoda(codaIndex, codaContents, numbers, "logDensity");
-      SimpleCodaPlots simpleCodaPlots = new SimpleCodaPlots(codaContents, codaIndex);
-      simpleCodaPlots.toPDF(new File(loglDensityDir, "plot.pdf"));
     }
   }
   
@@ -130,5 +124,11 @@ public class MultiLevelMain implements Runnable
     output.setOutputFolder(Results.getResultFolder());
     output.printWrite("logDensity-summary", (Object []) toWrite);
     output.close();
+    File loglDensityDir = Results.getFileInResultFolder("logDensity");
+    File codaIndex = new File(loglDensityDir, "codaIndex");
+    File codaContents=new File(loglDensityDir, "codaContents");
+    CodaParser.listToCoda(codaIndex, codaContents, samples, "logDensity");
+    SimpleCodaPlots simpleCodaPlots = new SimpleCodaPlots(codaContents, codaIndex);
+    simpleCodaPlots.toPDF(new File(loglDensityDir, "plot.pdf"));
   }
 }
