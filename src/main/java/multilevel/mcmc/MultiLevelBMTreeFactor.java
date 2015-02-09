@@ -1,10 +1,10 @@
 package multilevel.mcmc;
 
 import java.util.List;
+import java.util.Map;
 
 import com.beust.jcommander.internal.Lists;
 
-import multilevel.MultiLevelMain;
 import multilevel.Node;
 import multilevel.io.Datum;
 import multilevel.io.MultiLevelDataset;
@@ -60,7 +60,42 @@ public class MultiLevelBMTreeFactor implements Factor
   
   private final MultiLevelBMTreeFactor parent;
   
-  public MultiLevelBMTreeFactor(MultiLevelBMTreeFactor parent, MultiLevelDataset data, Node node, MultiLevelModelOptions modelOptions)
+  public static interface Initialization
+  {
+    public double getLeaf(Node n);
+    public double getVariance(Node n);
+  }
+  
+  public static class InitFromSMC implements Initialization
+  {
+    private final Map<Node, Particle> standardSMC_sample;
+    
+    public InitFromSMC(Map<Node, Particle> standardSMC_sample)
+    {
+      this.standardSMC_sample = standardSMC_sample;
+    }
+
+    @Override
+    public double getLeaf(Node node)
+    {
+      Particle particle = standardSMC_sample.get(node);
+      return particle.message.message[0];
+    }
+
+    @Override
+    public double getVariance(Node node)
+    {
+      Particle particle = standardSMC_sample.get(node);
+      return particle.variance;
+    }
+  }
+  
+  public MultiLevelBMTreeFactor(
+      MultiLevelBMTreeFactor parent, 
+      MultiLevelDataset data, 
+      Node node, 
+      MultiLevelModelOptions modelOptions,
+      Initialization init)
   {
     this.modelOptions = modelOptions;
     if (!modelOptions.useTransform)
@@ -70,16 +105,15 @@ public class MultiLevelBMTreeFactor implements Factor
     this.node = node;
     children = Lists.newArrayList();
     for (Node child : data.getChildren(node))
-      children.add(new MultiLevelBMTreeFactor(this, data, child, modelOptions));
+      children.add(new MultiLevelBMTreeFactor(this, data, child, modelOptions, init));
     componentsList = children.size() > 0 ? new FactorComponentList<MultiLevelBMTreeFactor>(children) : null;
     
-    if (MultiLevelMain.standardSMC_sample != null)
+    if (init != null)
     {
-      Particle particle = MultiLevelMain.standardSMC_sample.get(node);
-      if (children.size() == 0)
-        contents.setValue(particle.message.message[0]);
+      if (data.getChildren(node).isEmpty())
+        contents.setValue(init.getLeaf(node));
       else
-        contents.setValue(particle.variance);
+        contents.setValue(init.getVariance(node));
     }
     else
       if (children.size() == 0)

@@ -11,6 +11,8 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 import com.google.common.collect.Lists;
 
 import multilevel.io.MultiLevelDataset;
+import multilevel.mcmc.MultiLevelBMTreeFactor;
+import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
 import multilevel.mcmc.MultiLevelModel;
 import multilevel.smc.DivideConquerMCAlgorithm;
 import multilevel.smc.DivideConquerMCAlgorithm.LogDensityApprox;
@@ -47,8 +49,6 @@ public class MultiLevelMain implements Runnable
   @OptionSet(name = "factory")
   public final MCMCFactory factory = new MCMCFactory();
   
-  
-  
   public static enum SamplingMethod { DC, STD, GIBBS }
 
   /**
@@ -59,16 +59,18 @@ public class MultiLevelMain implements Runnable
     Mains.instrumentedRun(args, new MultiLevelMain());
   }
   
-  public static Map<Node, Particle> standardSMC_sample;
-
   @Override
   public void run()
   {
     MultiLevelDataset dataset = new MultiLevelDataset(inputData);
     DivideConquerMCAlgorithm smc = new DivideConquerMCAlgorithm(dataset, dcsmcOption, modelOptions);
     
+    Initialization init = null;
     if (initGibbsWithStdSMC && samplingMethod == SamplingMethod.GIBBS)
-      standardSMC_sample = smc.standardSMC_sample(mainRandom).sample(mainRandom);
+    {
+      Map<Node, Particle> standardSMC_sample = smc.standardSMC_sample(mainRandom).sample(mainRandom);
+      init = new MultiLevelBMTreeFactor.InitFromSMC(standardSMC_sample);
+    }
     
     LogDensityApprox approx = null;
     if (samplingMethod == SamplingMethod.DC)  
@@ -84,7 +86,7 @@ public class MultiLevelMain implements Runnable
     else if (samplingMethod == SamplingMethod.GIBBS)
     {      
       System.out.println("Starting GIBBS sampling");
-      MultiLevelModel modelSpec = new MultiLevelModel(dataset, modelOptions);
+      MultiLevelModel modelSpec = new MultiLevelModel(dataset, modelOptions, init);
       factory.excludeNodeMove(RealVariablePeskunTypeMove.class);
       factory.addNodeMove(RealVariable.class, RealVariableMHProposal.class);
       factory.addProcessor(new LogDensityProcessor());
@@ -110,7 +112,7 @@ public class MultiLevelMain implements Runnable
     }
   }
   
-  private static void printMeanDensityStats(List<Double> samples)
+  public static void printMeanDensityStats(List<Double> samples)
   {
     SummaryStatistics statistics = new SummaryStatistics();
     for (double sample : samples)

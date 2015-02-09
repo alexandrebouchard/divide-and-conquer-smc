@@ -45,7 +45,7 @@ public class DivideConquerMCAlgorithm
   public static class MultiLevelModelOptions
   {
     @Option public boolean useTransform = true;
-    @Option public boolean useUniformVariance = true;
+    @Option public boolean useUniformVariance = false;
     @Option public double maxVarianceIfUniform = 5.0;
     @Option public double variancePriorRateIfExponential = 1.0;
   }
@@ -175,6 +175,10 @@ public class DivideConquerMCAlgorithm
     public double sampleValue(Random rand)
     {
       return Normal.generate(rand, message.message[0], message.messageVariance);
+    }
+    public boolean isLeaf()
+    {
+      return childrenNodes.isEmpty();
     }
 
   }

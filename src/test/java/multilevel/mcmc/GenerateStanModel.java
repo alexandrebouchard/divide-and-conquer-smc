@@ -11,6 +11,7 @@ import multilevel.io.MultiLevelDataset;
 import binc.Command;
 import binc.Commands;
 import briefj.BriefIO;
+import briefj.opt.InputFile;
 import briefj.opt.Option;
 import briefj.run.Mains;
 import briefj.run.Results;
@@ -19,6 +20,7 @@ import briefj.run.Results;
 
 public class GenerateStanModel implements Runnable
 {
+  @InputFile
   @Option(required = true) public File inputData;
   private MultiLevelDataset dataset;
   @Option public String stanHome = "/Users/bouchard/Documents/workspace-cpp/cmdstan";
@@ -44,10 +46,12 @@ public class GenerateStanModel implements Runnable
     String arg = modelFile.getAbsolutePath().replaceAll("[.]stan$", "");
     Command.call(Commands.make.ranIn(new File(stanHome)).withArg(arg).withStandardOutMirroring());
   }
+  
+  public static final String DATA_FILE_NAME = "data.R";
 
   private void createDataFile()
   {
-    File dataFile = Results.getFileInResultFolder("data.R");
+    File dataFile = Results.getFileInResultFolder(DATA_FILE_NAME);
     PrintWriter out = BriefIO.output(dataFile);
     for (String line : data)
       out.println(line);
