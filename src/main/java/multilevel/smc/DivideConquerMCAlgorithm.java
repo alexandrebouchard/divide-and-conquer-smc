@@ -62,7 +62,9 @@ public class DivideConquerMCAlgorithm
   {
     if (options.essThreshold != 1.0)
       throw new RuntimeException();
-    return recurse(rand, dataset.getRoot());
+    ParticleApproximation result =  recurse(rand, dataset.getRoot());
+    output.printWrite("logZ", "estimate", result.logZEstimate);
+    return result;
   }
   
   public DivideConquerMCAlgorithm(MultiLevelDataset dataset, MultiLevelDcSmcOptions options, MultiLevelModelOptions modelOptions)
@@ -76,6 +78,8 @@ public class DivideConquerMCAlgorithm
 
   public static class ParticleApproximation  implements LogDensityApprox
   {
+    public double logZEstimate = 0.0;
+    public boolean resampled = false;
     public final Particle [] particles;
     public final double [] probabilities;
     private ParticleApproximation(int nParticles)
@@ -104,6 +108,7 @@ public class DivideConquerMCAlgorithm
   
   public class StandardParticleApproximation implements LogDensityApprox
   {
+    public boolean resampled = false;
     public final List<Map<Node, Particle>> particles;
     public final double [] weights;
     
@@ -116,11 +121,14 @@ public class DivideConquerMCAlgorithm
       this.particles = Lists.newArrayList();
       this.weights = new double[nParticles];
       if (initialization)
+      {
+        resampled = true;
         for (int i = 0; i < nParticles; i++)
         {
           this.particles.add(new LinkedHashMap<Node, DivideConquerMCAlgorithm.Particle>());
           this.weights[i] = 1.0/((double) nParticles);
         }
+      }
     }
     
     public Map<Node,Particle> sample(Random random)
@@ -272,7 +280,8 @@ public class DivideConquerMCAlgorithm
       
       
       // Note: make sure to deeply duplicate particles when doing resampling
-      if (relativeEss < options.essThreshold + NumericalUtils.THRESHOLD )//0.5)
+      if (relativeEss < options.essThreshold + NumericalUtils.THRESHOLD 
+          || node.level() < options.levelCutOffForOutput) // the stat printing stuff assumes uniformly weighted particles
       {
         StandardParticleApproximation newApprox = new StandardParticleApproximation(options.nParticles, false);
         Counter<Integer> resampledCounts = SMCUtils.multinomialSampling(rand, approximation.weights, nParticles);
@@ -285,7 +294,7 @@ public class DivideConquerMCAlgorithm
           }
         for (int i = 0; i < options.nParticles; i++)
           newApprox.weights[i] = 1.0/((double)options.nParticles);
-        
+        newApprox.resampled = true;
         approximation = newApprox;
       }
       
@@ -298,18 +307,16 @@ public class DivideConquerMCAlgorithm
         if (node.level() + 1 < options.levelCutOffForOutput && !children.isEmpty())
           printDeltaNodeStatistics(rand, node, particles);
       }
-      
-      
-      
     }
     
     return approximation;
   }
   
-
-  
   private Particle[] convert(StandardParticleApproximation approximation, Node node)
   {
+    if (!approximation.resampled)
+      throw new RuntimeException();
+    
     Particle[] result = new Particle[nParticles];
     
     for (int i = 0; i < nParticles; i++)
@@ -322,17 +329,23 @@ public class DivideConquerMCAlgorithm
   {
     Set<Node> children = dataset.getChildren(node);
     
+
+    double logZ = 0.0;
     ParticleApproximation result;
     double maxLogLikelihood = Double.NEGATIVE_INFINITY;
     if (children.isEmpty())
       result = _leafParticleApproximation(rand, node);
     else
     {
-      result = new ParticleApproximation(nParticles);
       List<ParticleApproximation> childrenApproximations = Lists.newArrayList();
       
       for (Node child : children)
         childrenApproximations.add(recurse(rand, child)); 
+      
+      result = new ParticleApproximation(nParticles);
+      
+      for (ParticleApproximation childApprox : childrenApproximations)
+        logZ += childApprox.logZEstimate;
        
       for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
       {
@@ -340,7 +353,6 @@ public class DivideConquerMCAlgorithm
         double variance = sampleVariance(rand);
         
         // build product sample from children
-        double weight = 0.0;
         List<BrownianModelCalculator> sampledCalculators = Lists.newArrayList();
         List<Node> childrenNode = Lists.newArrayList();
         double descParticleObsLogl = 0.0;
@@ -349,7 +361,8 @@ public class DivideConquerMCAlgorithm
         {
           Particle childParticle = childApprox.particles[particleIndex];
           sampledCalculators.add(childParticle.message);
-          weight += childApprox.probabilities[particleIndex];
+          // remove the thing below b/c we are assuming resampling at each generation!
+//          weight += childApprox.probabilities[particleIndex];
           childrenNode.add(childApprox.particles[particleIndex].node);
           descParticleObsLogl += childParticle.descendentObservationLogLikelihood;
           descVar += childParticle.descendentVarianceDensity;
@@ -358,27 +371,26 @@ public class DivideConquerMCAlgorithm
         // compute weight
         BrownianModelCalculator combined = BrownianModelCalculator.combine(sampledCalculators, variance);
         double combinedLogLikelihood = combined.logLikelihood();
-        weight += combinedLogLikelihood;
+        double logWeight = combinedLogLikelihood;
         
         for (BrownianModelCalculator childCalculator : sampledCalculators)
-          weight = weight - childCalculator.logLikelihood();
-        weight = weight + varianceRatio(variance);
+          logWeight = logWeight - childCalculator.logLikelihood();
+        logWeight = logWeight + varianceRatio(variance);
         
         // add both qts to result
         Particle newParticle = new Particle(combined, variance, sampledCalculators, node, childrenNode, descParticleObsLogl, descVar);
         result.particles[particleIndex] = newParticle;
-        result.probabilities[particleIndex] = weight;
+        result.probabilities[particleIndex] = logWeight;
         
         if (combinedLogLikelihood + newParticle.descendentObservationLogLikelihood  > maxLogLikelihood)
           maxLogLikelihood = combinedLogLikelihood + newParticle.descendentObservationLogLikelihood;
       }
     }
     
-    // update log norm estimate
-    // TODO
-    
     // exp normalize
-    Multinomial.expNormalize(result.probabilities);
+    double logNorm = Multinomial.expNormalize(result.probabilities);
+    
+    logZ += logNorm - Math.log(nParticles);
     
     // monitor ESS
     double ess = SMCUtils.ess(result.probabilities);
@@ -392,6 +404,7 @@ public class DivideConquerMCAlgorithm
     
     // perform resampling
     result = resample(rand, result, nParticles);
+    result.logZEstimate = logZ;
     
     // report statistics on node mean, var
     if (node.level() < options.levelCutOffForOutput)
