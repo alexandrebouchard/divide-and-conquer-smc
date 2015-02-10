@@ -289,6 +289,18 @@ public class DivideConquerMCAlgorithm
         approximation = newApprox;
       }
       
+      if (node.level() < options.levelCutOffForOutput)
+      {
+        Particle [] particles = convert(approximation, node);
+        printNodeStatistics(rand, node, particles);
+        
+        // report statistics on deltas
+        if (node.level() + 1 < options.levelCutOffForOutput && !children.isEmpty())
+          printDeltaNodeStatistics(rand, node, particles);
+      }
+      
+      
+      
     }
     
     return approximation;
@@ -296,6 +308,16 @@ public class DivideConquerMCAlgorithm
   
 
   
+  private Particle[] convert(StandardParticleApproximation approximation, Node node)
+  {
+    Particle[] result = new Particle[nParticles];
+    
+    for (int i = 0; i < nParticles; i++)
+      result[i] = approximation.particles.get(i).get(node);
+    
+    return result;
+  }
+
   private ParticleApproximation recurse(Random rand, Node node)
   {
     Set<Node> children = dataset.getChildren(node);
@@ -310,7 +332,7 @@ public class DivideConquerMCAlgorithm
       List<ParticleApproximation> childrenApproximations = Lists.newArrayList();
       
       for (Node child : children)
-        childrenApproximations.add(recurse(rand, child)); //BriefLists.concat(path,child)));
+        childrenApproximations.add(recurse(rand, child)); 
        
       for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
       {
@@ -373,17 +395,17 @@ public class DivideConquerMCAlgorithm
     
     // report statistics on node mean, var
     if (node.level() < options.levelCutOffForOutput)
-      printNodeStatistics(rand, node, result);
+      printNodeStatistics(rand, node, result.particles);
     
     // report statistics on deltas
     if (node.level() + 1 < options.levelCutOffForOutput && !children.isEmpty())
-      printDeltaNodeStatistics(rand, node, result);
+      printDeltaNodeStatistics(rand, node, result.particles);
     
     return result;
   }
   
   private void printDeltaNodeStatistics(Random rand, Node node,
-      ParticleApproximation result)
+      Particle [] particles)
   {
     Set<Node> children = dataset.getChildren(node);
     int nChildren = children.size();
@@ -395,7 +417,7 @@ public class DivideConquerMCAlgorithm
     
     for (int i = 0; i < options.nParticles; i++)
     {
-      Particle p = result.particles[i % nParticles];
+      Particle p = particles[i % nParticles];
       double [] jointSample = sampleChildrenJointly(rand, p);
       double transformedRoot = inverseTransform(jointSample[nChildren]);
       
@@ -411,16 +433,15 @@ public class DivideConquerMCAlgorithm
     
     for (int c = 0; c < nChildren; c++)
     {
-      String pathStr = result.particles[0].childrenNodes.get(c).toString();
+      String pathStr = particles[0].childrenNodes.get(c).toString();
       PlotHistogram.from(deltaSamples[c])
-//        .withXLimit(-0.5, 0.5).withYLimit(0, 15)
         .toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
       output.printWrite("deltaStats", "path", pathStr, "deltaMean", stats[c].getMean(), "deltaSD", stats[c].getStandardDeviation());
     }
     output.flush();
   }
 
-  private void printNodeStatistics(Random rand, Node node, ParticleApproximation result)
+  private void printNodeStatistics(Random rand, Node node, Particle [] particles)
   {
     Set<Node> children = dataset.getChildren(node);
     
@@ -431,7 +452,7 @@ public class DivideConquerMCAlgorithm
     DescriptiveStatistics varStats = children.isEmpty() ? null : new DescriptiveStatistics();
     for (int i = 0; i < options.nParticles; i++)
     {
-      Particle p = result.particles[i % nParticles];
+      Particle p = particles[i % nParticles];
       double naturalPoint = p.sampleValue(rand);
       double meanPoint = inverseTransform(naturalPoint);
       meanStats.addValue(meanPoint);
@@ -447,13 +468,11 @@ public class DivideConquerMCAlgorithm
     String pathStr = node.toString();
     PlotHistogram.from(naturalSamples).toPDF(new File(plotsFolder, pathStr + "_naturalParam.pdf"));
     PlotHistogram.from(meanSamples)
-//      .withXLimit(0.6, 1.0).withYLimit(0, 25)
       .toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
     output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
     if (varianceSamples != null)
     {
       PlotHistogram.from(varianceSamples)
-//        .withXLimit(0, 4.0).withYLimit(0, 5)
         .toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
       output.printWrite("varStats", "path", pathStr, "varMean", varStats.getMean(), "varSD", varStats.getStandardDeviation());
     }
