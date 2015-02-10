@@ -3,6 +3,7 @@ package multilevel.mcmc;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,10 +13,12 @@ import multilevel.io.MultiLevelDataset;
 import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
 import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import au.com.bytecode.opencsv.CSVParser;
+import bayonet.rplot.PlotHistogram;
 import briefj.BriefIO;
 import briefj.opt.InputFile;
 import briefj.opt.Option;
 import briefj.run.Mains;
+import briefj.run.Results;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -45,6 +48,15 @@ public class AnalyzeStanOuput implements Runnable
         Collections.EMPTY_LIST);
     
     List<Double> samples = new ArrayList<>();
+    
+    Map<String,List<Double>> marginals = new HashMap<>();
+    for (Node node : dataset.postOrder())
+      if (node.level() < 2)
+      {
+        marginals.put("var_" + node2stan(node), new ArrayList<>());
+        marginals.put(node2stan(node), new ArrayList<>());
+      }
+    
     for (Map<String,String> parsedLine : 
       BriefIO.readLines(stanOutput)
         .filter(commentDetector)
@@ -57,8 +69,24 @@ public class AnalyzeStanOuput implements Runnable
       MultiLevelModel model = new MultiLevelModel(dataset , options , adaptor);
       double curLogDensity = model.multiLevelBMTreeFactor.logDensity();
       samples.add(curLogDensity);
+      
+      for (String key : marginals.keySet())
+        marginals.get(key).add(Double.parseDouble(parsedLine.get(key)));
     }
     MultiLevelMain.printMeanDensityStats(samples);
+    
+    File histogramsDir = Results.getFolderInResultFolder("histograms");
+    
+    for (String key : marginals.keySet())
+    {
+      List<Double> marginalSamples = marginals.get(key);
+      PlotHistogram.from(marginalSamples).toPDF(new File(histogramsDir, key + ".pdf"));
+    }
+  }
+  
+  private static String node2stan(Node node)
+  {
+    return node.toString().replace('-', '_');
   }
   
   public static class Adaptor implements Initialization
@@ -73,13 +101,13 @@ public class AnalyzeStanOuput implements Runnable
     @Override
     public double getLeaf(Node n)
     {
-      return Double.parseDouble(stanSample.get(n.toString().replace('-', '_')));
+      return Double.parseDouble(stanSample.get(node2stan(n)));
     }
 
     @Override
     public double getVariance(Node n)
     {
-      return Double.parseDouble(stanSample.get("var_" + n.toString().replace('-', '_')));
+      return Double.parseDouble(stanSample.get("var_" + node2stan(n)));
     }
   }
 
