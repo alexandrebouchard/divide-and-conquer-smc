@@ -244,6 +244,7 @@ public class DivideConquerMCAlgorithm
             logWeightUpdate = logWeightUpdate - message.logLikelihood();
             descLogLikelihoods += childParticle.descendentObservationLogLikelihood;
             descVar += childParticle.descendentVarianceDensity;
+            approximation.particles.get(particleIndex).remove(child);
           }
           BrownianModelCalculator combined = BrownianModelCalculator.combine(childrenCalculators, variance);
           double combinedLogLikelihood = combined.logLikelihood();
