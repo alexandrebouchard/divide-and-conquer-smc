@@ -216,14 +216,14 @@ public class DivideConquerMCAlgorithm
   
   public StandardParticleApproximation standardSMC_sample(Random rand)
   {
-    if (!options.useBetaProposal || varianceRatio(11.0) != 0.0)
+    if (!options.useBetaProposal || varianceRatio(11.0) != 0.0) // 11 is an arbitrary constant
       throw new RuntimeException(); // some assumptions made for simplicity
     
     // list nodes in postorder
     List<Node> traversalOrder = dataset.postOrder();
     
     StandardParticleApproximation approximation = new StandardParticleApproximation(options.nParticles, true);
-    
+    double logNorm = 0.0, logZ = 0.0;
     for (Node node : traversalOrder)
     {
       double maxLogLikelihood = Double.NEGATIVE_INFINITY;
@@ -233,6 +233,7 @@ public class DivideConquerMCAlgorithm
         Particle[] particles = _leafParticleApproximation(rand, node).particles;
         for (int particleIndex = 0; particleIndex < nParticles; particleIndex++)
           approximation.particles.get(particleIndex).put(node, particles[particleIndex]);
+        
       }
       else
       {
@@ -265,7 +266,8 @@ public class DivideConquerMCAlgorithm
           if (combinedLogLikelihood + newParticle.descendentObservationLogLikelihood > maxLogLikelihood)
             maxLogLikelihood = combinedLogLikelihood + newParticle.descendentObservationLogLikelihood;
         }
-        Multinomial.normalize(approximation.weights);
+        double norm = Multinomial.normalize(approximation.weights);
+        logNorm += Math.log(norm);
       }
       
       double ess = SMCUtils.ess(approximation.weights);
@@ -283,6 +285,9 @@ public class DivideConquerMCAlgorithm
       if (relativeEss < options.essThreshold + NumericalUtils.THRESHOLD 
           || node.level() < options.levelCutOffForOutput) // the stat printing stuff assumes uniformly weighted particles
       {
+        logZ += logNorm;
+        logNorm = 0.0;
+        
         StandardParticleApproximation newApprox = new StandardParticleApproximation(options.nParticles, false);
         Counter<Integer> resampledCounts = SMCUtils.multinomialSampling(rand, approximation.weights, nParticles);
         
@@ -308,6 +313,8 @@ public class DivideConquerMCAlgorithm
           printDeltaNodeStatistics(rand, node, particles);
       }
     }
+    
+    output.printWrite("logZ", "estimate", logZ);
     
     return approximation;
   }
