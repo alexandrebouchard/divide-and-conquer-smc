@@ -26,6 +26,8 @@ import blang.MCMCFactory;
 import blang.mcmc.RealVariableMHProposal;
 import blang.mcmc.RealVariablePeskunTypeMove;
 import blang.processing.LogDensityProcessor;
+import blang.processing.Processor;
+import blang.processing.ProcessorContext;
 import blang.variables.RealVariable;
 import blang.variables.RealVariableProcessor;
 import briefj.OutputManager;
@@ -62,6 +64,8 @@ public class MultiLevelMain implements Runnable
   public final MCMCFactory factory = new MCMCFactory();
   
   public static enum SamplingMethod { DC, STD, GIBBS }
+  
+  public OutputManager output = new OutputManager();
 
   public static void main(String[] args)
   {
@@ -73,6 +77,7 @@ public class MultiLevelMain implements Runnable
   {
     MultiLevelDataset dataset = new MultiLevelDataset(inputData);
     DivideConquerMCAlgorithm smc = new DivideConquerMCAlgorithm(dataset, dcsmcOption, modelOptions);
+    output.setOutputFolder(Results.getResultFolder());
     
     Initialization init = null;
     if (initGibbsWithStdSMC && samplingMethod == SamplingMethod.GIBBS)
@@ -99,6 +104,7 @@ public class MultiLevelMain implements Runnable
       factory.excludeNodeMove(RealVariablePeskunTypeMove.class);
       factory.addNodeMove(RealVariable.class, RealVariableMHProposal.class);
       factory.addProcessor(new LogDensityProcessor());
+      factory.addProcessor(new TopSampleProcessor());
       factory.excludeNodeProcessor(RealVariableProcessor.class);
       MCMCAlgorithm mcmc = factory.build(modelSpec, false);
       mcmc.run();
@@ -112,6 +118,15 @@ public class MultiLevelMain implements Runnable
       for (int i = 0; i < Math.min(1000, dcsmcOption.nParticles); i++)
         numbers.add(approx.sampleNextLogDensity(mainRandom));
       printMeanDensityStats(numbers);
+    }
+  }
+  
+  public class TopSampleProcessor implements Processor
+  {
+    @Override
+    public void process(ProcessorContext context)
+    {
+      ((MultiLevelBMTreeFactor) context.getModel().linearizedFactors().get(0)).logSamples(2, output, context.getMcmcIteration());
     }
   }
   

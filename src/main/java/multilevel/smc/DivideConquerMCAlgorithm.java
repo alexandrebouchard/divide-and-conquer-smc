@@ -504,7 +504,12 @@ public class DivideConquerMCAlgorithm
   public static void logSamples(OutputManager output, double [] samples, String node, String variable)
   {
     for (int i = 0; i < samples.length; i++)
-      output.write("samples", "node", node.toString(), "variable", variable, "iteration", i, "value", samples[i]);
+      logSamples(output, samples[i], node, variable, i);
+  }
+  
+  public static void logSamples(OutputManager output, double sample, String node, String variable, int iteration)
+  {
+    output.write("samples", "node", node.toString(), "variable", variable, "iteration", iteration, "value", sample);
   }
 
   private static ParticleApproximation resample(Random rand, ParticleApproximation beforeResampling, int nParticles)

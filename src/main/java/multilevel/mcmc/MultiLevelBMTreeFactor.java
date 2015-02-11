@@ -18,6 +18,7 @@ import blang.annotations.FactorArgument;
 import blang.annotations.FactorComponent;
 import blang.factors.Factor;
 import blang.variables.RealVariable;
+import briefj.OutputManager;
 
 
 
@@ -34,6 +35,21 @@ public class MultiLevelBMTreeFactor implements Factor
   public final Node node;
   public final MultiLevelDataset dataset;
   private final MultiLevelModelOptions modelOptions;
+  
+  public void logSamples(int nLevels, OutputManager output, int iteration)
+  {
+    if (nLevels < 1)
+      return;
+    
+    DivideConquerMCAlgorithm.logSamples(output, contents.getValue(), node.toString(), "varSample", iteration);
+    
+    FactorComponentList<MultiLevelBMTreeFactor> curComponent = componentsList;
+    while (curComponent != null)
+    {
+      curComponent.item.logSamples(nLevels - 1, output, iteration);
+      curComponent = curComponent.next;
+    }
+  }
   
   public static class FactorComponentList<T>
   {
