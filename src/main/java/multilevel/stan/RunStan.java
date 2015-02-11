@@ -15,6 +15,8 @@ public class RunStan implements Runnable
   @Option(required = true) public File stanDataFolder;
   @Option public int nIteration = 10000;
   @Option public double burnInFraction = 0.2;
+  @Option public int thin = 10;
+  @Option public int seed = 1;
   
   public static void main(String[] args)
   {
@@ -36,8 +38,10 @@ public class RunStan implements Runnable
       .ranIn(Results.getResultFolder())
       .withStandardOutMirroring()
       .withArgs("sample "
+          + "thin=" + thin  + " "
           + "num_samples=" + nSamples + " "
           + "num_warmup=" + nWarmUp + " "
+          + "random seed=" + seed  + " "
           + "data file=" + data.getAbsolutePath())
       .call();
     
