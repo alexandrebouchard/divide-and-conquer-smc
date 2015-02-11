@@ -29,8 +29,6 @@ public class RunStan implements Runnable
     File data = new File(stanDataFolder, GenerateStanModel.DATA_FILE_NAME);
     File executable = new File(stanDataFolder, "model");
     
-    System.out.println(executable);
-    
     int nSamples = (int) ((1.0 - burnInFraction) * nIteration);
     int nWarmUp = (int) (burnInFraction * nIteration);
     

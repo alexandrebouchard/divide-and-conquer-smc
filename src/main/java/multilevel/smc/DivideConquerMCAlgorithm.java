@@ -64,6 +64,7 @@ public class DivideConquerMCAlgorithm
       throw new RuntimeException();
     ParticleApproximation result =  recurse(rand, dataset.getRoot());
     output.printWrite("logZ", "estimate", result.logZEstimate);
+    output.flush();
     return result;
   }
   
@@ -278,9 +279,6 @@ public class DivideConquerMCAlgorithm
       if (node.level() == 0)
         output.printWrite("maxLL", "maxLL", maxLogLikelihood);
       
-      output.flush();
-      
-      
       // Note: make sure to deeply duplicate particles when doing resampling
       if (relativeEss < options.essThreshold + NumericalUtils.THRESHOLD 
           || node.level() < options.levelCutOffForOutput) // the stat printing stuff assumes uniformly weighted particles
@@ -315,7 +313,7 @@ public class DivideConquerMCAlgorithm
     }
     
     output.printWrite("logZ", "estimate", logZ);
-    
+    output.flush();
     return approximation;
   }
   
