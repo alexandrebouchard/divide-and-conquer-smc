@@ -12,10 +12,12 @@ import multilevel.Node;
 import multilevel.io.MultiLevelDataset;
 import multilevel.mcmc.MultiLevelModel;
 import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
+import multilevel.smc.DivideConquerMCAlgorithm;
 import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import au.com.bytecode.opencsv.CSVParser;
 import bayonet.rplot.PlotHistogram;
 import briefj.BriefIO;
+import briefj.OutputManager;
 import briefj.opt.InputFile;
 import briefj.opt.Option;
 import briefj.run.Mains;
@@ -38,6 +40,8 @@ public class AnalyzeStanOuput implements Runnable
   
   public static void analyzeStanOutput(MultiLevelDataset dataset, File stanOutput)
   {
+    OutputManager output = new OutputManager();
+    output.setOutputFolder(Results.getResultFolder());
     Predicate<String> commentDetector = ((String line) -> !line.isEmpty() && line.charAt(0) != '#');
     MultiLevelModelOptions options = new MultiLevelModelOptions();
     // find header line
@@ -50,14 +54,15 @@ public class AnalyzeStanOuput implements Runnable
     
     List<Double> samples = new ArrayList<>();
     
-    Map<String,List<Double>> marginals = new HashMap<>();
+    Map<Node,List<Double>> marginalVariances = new HashMap<>(), marginalMeans = new HashMap<>();
     for (Node node : dataset.postOrder())
       if (node.level() < 2)
       {
-        marginals.put("var_" + node2stan(node), new ArrayList<>());
-        marginals.put(node2stan(node), new ArrayList<>());
+        marginalVariances.put(node, new ArrayList<>());
+        marginalMeans.put(node, new ArrayList<>());
       }
     
+    int iteration = 0;
     for (Map<String,String> parsedLine : 
       BriefIO.readLines(stanOutput)
         .filter(commentDetector)
@@ -71,18 +76,31 @@ public class AnalyzeStanOuput implements Runnable
       double curLogDensity = model.multiLevelBMTreeFactor.logDensity();
       samples.add(curLogDensity);
       
-      for (String key : marginals.keySet())
-        marginals.get(key).add(Double.parseDouble(parsedLine.get(key)));
+      for (Node node : marginalMeans.keySet())
+      {
+        double meanSample = Double.parseDouble(parsedLine.get(node2stan(node)));
+        DivideConquerMCAlgorithm.logSamples(output, meanSample, node.toString(), "meanSample", iteration);
+        marginalMeans.get(node).add(meanSample);
+        
+        double varSample = Double.parseDouble(parsedLine.get("var_" + node2stan(node)));
+        DivideConquerMCAlgorithm.logSamples(output, varSample, node.toString(), "varSample", iteration);
+        marginalVariances.get(node).add(varSample);
+      }
+      iteration++;
     }
     MultiLevelMain.printMeanDensityStats(samples);
     
     File histogramsDir = Results.getFolderInResultFolder("histograms");
     
-    for (String key : marginals.keySet())
+    for (Node key : marginalMeans.keySet())
     {
-      List<Double> marginalSamples = marginals.get(key);
-      PlotHistogram.from(marginalSamples).toPDF(new File(histogramsDir, key + ".pdf"));
+      List<Double> varSamples = marginalVariances.get(key);
+      PlotHistogram.from(varSamples).toPDF(new File(histogramsDir, key + "_var.pdf"));
+      
+      List<Double> meanSamples = marginalMeans.get(key);
+      PlotHistogram.from(meanSamples).toPDF(new File(histogramsDir, key + "_naturalParam.pdf"));
     }
+    output.flush();
   }
   
   private static String node2stan(Node node)
