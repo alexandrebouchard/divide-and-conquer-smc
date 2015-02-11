@@ -454,6 +454,7 @@ public class DivideConquerMCAlgorithm
     for (int c = 0; c < nChildren; c++)
     {
       String pathStr = particles[0].childrenNodes.get(c).toString();
+      logSamples(output, deltaSamples[c], pathStr, "delta");
       PlotHistogram.from(deltaSamples[c])
         .toPDF(new File(plotsFolder, pathStr + "_delta.pdf"));
       output.printWrite("deltaStats", "path", pathStr, "deltaMean", stats[c].getMean(), "deltaSD", stats[c].getStandardDeviation());
@@ -487,16 +488,23 @@ public class DivideConquerMCAlgorithm
     File plotsFolder = Results.getFolderInResultFolder("histograms");
     String pathStr = node.toString();
     PlotHistogram.from(naturalSamples).toPDF(new File(plotsFolder, pathStr + "_naturalParam.pdf"));
-    PlotHistogram.from(meanSamples)
-      .toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
+    logSamples(output, naturalSamples, node.toString(), "naturalParam");
+    PlotHistogram.from(meanSamples).toPDF(new File(plotsFolder, pathStr + "_logisticMean.pdf"));
+    logSamples(output, meanSamples, node.toString(), "meanSample");
     output.printWrite("meanStats", "path", pathStr, "meanMean", meanStats.getMean(), "meanSD", meanStats.getStandardDeviation());
     if (varianceSamples != null)
     {
-      PlotHistogram.from(varianceSamples)
-        .toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
+      PlotHistogram.from(varianceSamples).toPDF(new File(plotsFolder, pathStr + "_var.pdf"));
+      logSamples(output, varianceSamples, node.toString(), "varSample");
       output.printWrite("varStats", "path", pathStr, "varMean", varStats.getMean(), "varSD", varStats.getStandardDeviation());
     }
     output.flush();    
+  }
+  
+  public static void logSamples(OutputManager output, double [] samples, String node, String variable)
+  {
+    for (int i = 0; i < samples.length; i++)
+      output.write("samples", "node", node.toString(), "variable", variable, "iteration", i, "value", samples[i]);
   }
 
   private static ParticleApproximation resample(Random rand, ParticleApproximation beforeResampling, int nParticles)
