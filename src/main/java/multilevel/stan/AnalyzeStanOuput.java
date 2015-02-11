@@ -1,4 +1,4 @@
-package multilevel.mcmc;
+package multilevel.stan;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -10,6 +10,7 @@ import java.util.Map;
 import multilevel.MultiLevelMain;
 import multilevel.Node;
 import multilevel.io.MultiLevelDataset;
+import multilevel.mcmc.MultiLevelModel;
 import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
 import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import au.com.bytecode.opencsv.CSVParser;

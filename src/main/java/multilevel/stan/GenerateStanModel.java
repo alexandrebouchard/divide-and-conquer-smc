@@ -1,4 +1,4 @@
-package multilevel.mcmc;
+package multilevel.stan;
 
 import java.io.File;
 import java.io.PrintWriter;
