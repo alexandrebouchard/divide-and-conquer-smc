@@ -215,7 +215,13 @@ public class DivideConquerMCAlgorithm
     return result;
   }
   
-  public StandardParticleApproximation standardSMC_sample(Random rand)
+  /**
+   * 
+   * @param rand
+   * @param maintainFullJoint Should we keep nodes under the fringe? Memory intensive but required to initialize the GIBBS sampler
+   * @return
+   */
+  public StandardParticleApproximation standardSMC_sample(Random rand, boolean maintainFullJoint)
   {
     if (!options.useBetaProposal || varianceRatio(11.0) != 0.0) // 11 is an arbitrary constant
       throw new RuntimeException(); // some assumptions made for simplicity
@@ -254,7 +260,8 @@ public class DivideConquerMCAlgorithm
             logWeightUpdate = logWeightUpdate - message.logLikelihood();
             descLogLikelihoods += childParticle.descendentObservationLogLikelihood;
             descVar += childParticle.descendentVarianceDensity;
-            approximation.particles.get(particleIndex).remove(child);
+            if (!maintainFullJoint)
+              approximation.particles.get(particleIndex).remove(child);
           }
           BrownianModelCalculator combined = BrownianModelCalculator.combine(childrenCalculators, variance);
           double combinedLogLikelihood = combined.logLikelihood();

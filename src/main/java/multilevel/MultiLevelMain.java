@@ -82,7 +82,7 @@ public class MultiLevelMain implements Runnable
     Initialization init = null;
     if (initGibbsWithStdSMC && samplingMethod == SamplingMethod.GIBBS)
     {
-      Map<Node, Particle> standardSMC_sample = smc.standardSMC_sample(mainRandom).sample(mainRandom);
+      Map<Node, Particle> standardSMC_sample = smc.standardSMC_sample(mainRandom, true).sample(mainRandom);
       init = new MultiLevelBMTreeFactor.InitFromSMC(standardSMC_sample);
     }
     
@@ -95,7 +95,7 @@ public class MultiLevelMain implements Runnable
     else if (samplingMethod == SamplingMethod.STD)
     {
       System.out.println("Starting standard SMC sampling");
-      approx = smc.standardSMC_sample(mainRandom);
+      approx = smc.standardSMC_sample(mainRandom, false);
     }
     else if (samplingMethod == SamplingMethod.GIBBS)
     {      
