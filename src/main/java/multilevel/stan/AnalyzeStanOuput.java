@@ -82,9 +82,12 @@ public class AnalyzeStanOuput implements Runnable
         DivideConquerMCAlgorithm.logSamples(output, meanSample, node.toString(), "meanSample", iteration);
         marginalMeans.get(node).add(meanSample);
         
-        double varSample = Double.parseDouble(parsedLine.get("var_" + node2stan(node)));
-        DivideConquerMCAlgorithm.logSamples(output, varSample, node.toString(), "varSample", iteration);
+        if (parsedLine.containsKey("var_" + node2stan(node)))
+        {
+          double varSample = Double.parseDouble(parsedLine.get("var_" + node2stan(node)));
+          DivideConquerMCAlgorithm.logSamples(output, varSample, node.toString(), "varSample", iteration);
         marginalVariances.get(node).add(varSample);
+        }
       }
       iteration++;
     }
