@@ -17,6 +17,7 @@ import bayonet.math.SpecialFunctions;
 import blang.annotations.FactorArgument;
 import blang.annotations.FactorComponent;
 import blang.factors.Factor;
+import blang.factors.FactorComponentList;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 
@@ -48,29 +49,6 @@ public class MultiLevelBMTreeFactor implements Factor
     {
       curComponent.item.logSamples(nLevels - 1, output, iteration);
       curComponent = curComponent.next;
-    }
-  }
-  
-  public static class FactorComponentList<T>
-  {
-    @FactorComponent
-    public final T item;
-    
-    @FactorComponent
-    public final FactorComponentList<T> next;
-    
-    private FactorComponentList(List<T> list, int index)
-    {
-      this.item = list.get(index);
-      int nextIndex = index + 1;
-      next = nextIndex < list.size() 
-          ? new FactorComponentList<T>(list, nextIndex)
-          : null;
-    }
-    
-    public FactorComponentList(List<T> list)
-    {
-      this(list, 0);
     }
   }
   
