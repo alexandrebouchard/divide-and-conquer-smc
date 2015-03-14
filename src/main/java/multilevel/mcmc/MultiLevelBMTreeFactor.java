@@ -17,7 +17,7 @@ import bayonet.math.SpecialFunctions;
 import blang.annotations.FactorArgument;
 import blang.annotations.FactorComponent;
 import blang.factors.Factor;
-import blang.factors.FactorComponentList;
+import blang.factors.FactorList;
 import blang.variables.RealVariable;
 import briefj.OutputManager;
 
@@ -30,7 +30,7 @@ public class MultiLevelBMTreeFactor implements Factor
   public final RealVariable contents = RealVariable.real(0.01);
   
   @FactorComponent
-  public final FactorComponentList<MultiLevelBMTreeFactor> componentsList;
+  public final FactorList<MultiLevelBMTreeFactor> componentsList;
   
   public final List<MultiLevelBMTreeFactor> children;
   public final Node node;
@@ -44,12 +44,8 @@ public class MultiLevelBMTreeFactor implements Factor
     
     DivideConquerMCAlgorithm.logSamples(output, contents.getValue(), node.toString(), "varSample", iteration);
     
-    FactorComponentList<MultiLevelBMTreeFactor> curComponent = componentsList;
-    while (curComponent != null)
-    {
-      curComponent.item.logSamples(nLevels - 1, output, iteration);
-      curComponent = curComponent.next;
-    }
+    for (MultiLevelBMTreeFactor factor : componentsList.list)
+      factor.logSamples(nLevels - 1, output, iteration);
   }
   
   private final MultiLevelBMTreeFactor parent;
@@ -100,7 +96,7 @@ public class MultiLevelBMTreeFactor implements Factor
     children = Lists.newArrayList();
     for (Node child : data.getChildren(node))
       children.add(new MultiLevelBMTreeFactor(this, data, child, modelOptions, init));
-    componentsList = children.size() > 0 ? new FactorComponentList<MultiLevelBMTreeFactor>(children) : null;
+    componentsList = children.size() > 0 ? FactorList.ofComponents(children) : null;
     
     if (init != null)
     {

@@ -37,7 +37,7 @@ dependencies {
   compile group: 'ca.ubc.stat', name: 'tutorialj', version: '2.0.2'
   compile group: 'ca.ubc.stat', name: 'binc', version: '1.2.1'
   compile group: 'ca.ubc.stat', name: 'briefj', version: '2.4.7'
-  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.11'
+  compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.12'
 }
 
 
