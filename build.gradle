@@ -38,6 +38,7 @@ dependencies {
   compile group: 'ca.ubc.stat', name: 'binc', version: '1.2.1'
   compile group: 'ca.ubc.stat', name: 'briefj', version: '2.4.7'
   compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.12'
+  compile group: 'com.hazelcast', name: 'hazelcast', version: '3.4.1'
 }
 
 

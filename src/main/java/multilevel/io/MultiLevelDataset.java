@@ -1,6 +1,7 @@
 package multilevel.io;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -11,6 +12,7 @@ import multilevel.Node;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import bayonet.graphs.DirectedTree;
 import briefj.BriefIO;
 import briefj.BriefMaps;
 import briefj.collections.Counter;
@@ -50,14 +52,14 @@ public class MultiLevelDataset
   {
     for (List<String> line : BriefIO.readLines(file).splitCSV())
     {
-      List<String> path = line.subList(0, line.size() - 2);
+      List<String> path = new ArrayList<>(line.subList(0, line.size() - 2)); // enclosing in array list for serialization
       List<String> datum =line.subList(line.size() - 2, line.size());
       
       if (root == null)
         root = Node.root(path.get(0)); 
       
       for (int i = 0; i < path.size() - 1; i++)
-        BriefMaps.getOrPutSet(children, new Node(path.subList(0, i+1))).add(new Node(path.subList(0, i+2))); 
+        BriefMaps.getOrPutSet(children, new Node( new ArrayList<>(path.subList(0, i+1)))).add(new Node( new ArrayList<>(path.subList(0, i+2)))); 
         
       data.put(new Node(path), new Datum(Integer.parseInt(datum.get(0)), Integer.parseInt(datum.get(1))));
     }
@@ -95,5 +97,22 @@ public class MultiLevelDataset
     for (Node child : getChildren(node))  
       postOrder(child, result);
     result.add(node);
+  }
+
+  public DirectedTree<Node> getTree()
+  {
+    DirectedTree<Node> result = new DirectedTree<Node>(root);
+    buildTree(result, root);
+    return result;
+  }
+
+  private void buildTree(DirectedTree<Node> result, Node node)
+  {
+    for (Node child : getChildren(node))
+    {
+      result.addChildren(node, child);
+      buildTree(result, child);
+    }
+    
   }
 }

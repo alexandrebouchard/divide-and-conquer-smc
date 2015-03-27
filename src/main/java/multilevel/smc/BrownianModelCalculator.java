@@ -1,5 +1,6 @@
 package multilevel.smc;
 
+import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -10,8 +11,10 @@ import bayonet.distributions.Normal;
 import briefj.opt.Option;
 
 
-public class BrownianModelCalculator
+public class BrownianModelCalculator implements Serializable
 {
+  private static final long serialVersionUID = 1L;
+
   public static BrownianModelCalculator combine(List<BrownianModelCalculator> children, double variance)
   {
     if (children.size() == 0)

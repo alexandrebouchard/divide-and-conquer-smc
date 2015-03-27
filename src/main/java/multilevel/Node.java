@@ -1,5 +1,6 @@
 package multilevel;
 
+import java.io.Serializable;
 import java.util.List;
 
 import briefj.BriefLists;
@@ -9,8 +10,9 @@ import com.google.common.collect.Lists;
 
 
 
-public class Node
+public class Node implements Serializable
 {
+  private static final long serialVersionUID = 1L;
   public final List<String> path;
 
   public Node(List<String> path)

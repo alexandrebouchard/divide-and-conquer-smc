@@ -10,6 +10,9 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import com.google.common.collect.Lists;
 
+import dc.DCOptions;
+import dc.DistributedDC;
+import multilevel.adaptor.MultiLevelProposalFactory;
 import multilevel.io.MultiLevelDataset;
 import multilevel.mcmc.MultiLevelBMTreeFactor;
 import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
@@ -63,7 +66,7 @@ public class MultiLevelMain implements Runnable
   @OptionSet(name = "factory")
   public final MCMCFactory factory = new MCMCFactory();
   
-  public static enum SamplingMethod { DC, STD, GIBBS }
+  public static enum SamplingMethod { DC, STD, GIBBS, DDC }
   
   public OutputManager output = new OutputManager();
 
@@ -108,6 +111,24 @@ public class MultiLevelMain implements Runnable
       factory.excludeNodeProcessor(RealVariableProcessor.class);
       MCMCAlgorithm mcmc = factory.build(modelSpec, false);
       mcmc.run();
+    }
+    else if (samplingMethod == SamplingMethod.DDC)
+    {
+      System.out.println("Starting distributed DC sampling");
+      MultiLevelProposalFactory proposalFactory = new MultiLevelProposalFactory();
+      proposalFactory.dataFile = inputData;
+      proposalFactory.variancePrior = modelOptions.variancePriorRateIfExponential;
+      if (!modelOptions.useTransform || modelOptions.useUniformVariance)
+        throw new RuntimeException();
+      
+      DCOptions options = new DCOptions();
+      options.masterRandomSeed = mainRandom.nextLong();
+      options.nParticles = dcsmcOption.nParticles;
+      options.essThreshold = dcsmcOption.essThreshold;
+      if (!dcsmcOption.useBetaProposal)
+        throw new RuntimeException();
+      
+      DistributedDC.createInstance(options, proposalFactory, dataset.getTree()).start();
     }
     else
       throw new RuntimeException();

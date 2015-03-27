@@ -156,7 +156,7 @@ public class DivideConquerMCAlgorithm
     public final double descendentVarianceDensity;
     public final List<Node> childrenNodes;
     public final double variance;
-    private Particle(
+    public Particle(
         BrownianModelCalculator message, 
         double variance, 
         List<BrownianModelCalculator> childrenMessages, 
