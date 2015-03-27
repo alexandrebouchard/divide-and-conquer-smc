@@ -137,10 +137,21 @@ public final class DistributedDC<P, N>
   private List<DCRecursionTask<P,N>> initialTasks()
   {
     List<DCRecursionTask<P,N>> result = new ArrayList<>();
-    for (N node : tree.getNodes())
-      if (tree.isLeaf(node))
-        result.add(new DCRecursionTask<P,N>(node));
+    populateInitialTasks(result, tree.getRoot(), options.maximumDistributionDepth);
+    System.out.println("nInitialTasks=" + result.size());
     return result;
+  }
+
+  private void populateInitialTasks(
+      List<DCRecursionTask<P, N>> result, // mod in place 
+      final N node,
+      final int maximumDistributionDepth)
+  {
+    if (tree.isLeaf(node) || maximumDistributionDepth == 0)
+      result.add(new DCRecursionTask<P,N>(node, false));
+    else
+      for (N childrenNode : tree.getChildren(node))
+        populateInitialTasks(result, childrenNode, maximumDistributionDepth - 1);
   }
 
   private void checkNotAlreadyStarted()

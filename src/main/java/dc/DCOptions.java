@@ -38,6 +38,9 @@ public class DCOptions implements Serializable
   public int maximumTimeToWaitInMinutes = 1;
   
   @Option
+  public int maximumDistributionDepth = Integer.MAX_VALUE;
+  
+  @Option
   public int indexInCluster = 1;  // see below
 
   /**

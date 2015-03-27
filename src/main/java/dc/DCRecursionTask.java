@@ -12,10 +12,12 @@ final class DCRecursionTask<P, N>  implements Runnable, Serializable
 {
   private static final long serialVersionUID = 1L;
   private final N currentNode;
+  private final boolean areChildrenPopulationsFromCluster;
   
-  DCRecursionTask(final N currentNode)
+  DCRecursionTask(final N currentNode, boolean areChildrenPopulationsFromCluster)
   {
     this.currentNode = currentNode;
+    this.areChildrenPopulationsFromCluster = areChildrenPopulationsFromCluster;
   }
   
   private DistributedDC<P, N> dc()
@@ -28,18 +30,8 @@ final class DCRecursionTask<P, N>  implements Runnable, Serializable
   {
     try
     {
-      final List<N> childrenNodes = new ArrayList<>(dc().tree.getChildren(currentNode));
-      final List<ParticlePopulation<P>> childrenPopulations = getChildrenPopulations(childrenNodes);
-      DCProposal<P> proposal = null;
-      List<DCProcessor<P>> processors = null;
-      final Random random = getRandom();
       final DistributedDC<P, N> dc = dc();
-      synchronized (dc().proposalFactory) 
-      { 
-        proposal = dc.proposalFactory.build(random, currentNode, childrenNodes); 
-        processors = dc.processorFactory.build(new DCProcessorFactoryContext<P,N>(currentNode, dc().tree));
-      }
-      final ParticlePopulation<P> newPopulation = DCRecursion.dcRecurse(random, dc.options, childrenPopulations, proposal, processors);
+      final ParticlePopulation<P> newPopulation = run(currentNode, areChildrenPopulationsFromCluster);
       dc.populations.put(currentNode, newPopulation);
       final N parent = dc.tree.getParent(currentNode);
       if (parent != null)
@@ -51,6 +43,34 @@ final class DCRecursionTask<P, N>  implements Runnable, Serializable
     }
   }
   
+  private ParticlePopulation<P> run(N node, boolean areChildrenPopulationsFromCluster)
+  {
+    final DistributedDC<P, N> dc = dc();
+    final List<N> childrenNodes = new ArrayList<>(dc.tree.getChildren(node));
+    final List<ParticlePopulation<P>> childrenPopulations = areChildrenPopulationsFromCluster ?
+        getChildrenPopulationsFromCluster(childrenNodes) : 
+        getChildrenPopulationsRecursively(childrenNodes);
+    DCProposal<P> proposal = null;
+    List<DCProcessor<P>> processors = null;
+    final Random random = getRandom(node);
+    
+    synchronized (dc.proposalFactory) 
+    { 
+      proposal = dc.proposalFactory.build(random, node, childrenNodes); 
+      processors = dc.processorFactory.build(new DCProcessorFactoryContext<P,N>(node, dc.tree));
+    }
+    return DCRecursion.dcRecurse(random, dc.options, childrenPopulations, proposal, processors);
+  }
+  
+  private List<ParticlePopulation<P>> getChildrenPopulationsRecursively(
+      List<N> childrenNodes)
+  {
+    List<ParticlePopulation<P>> result = new ArrayList<>();
+    for (N childNode : childrenNodes)
+      result.add(run(childNode, false));
+    return result;
+  }
+
   private void prepareNextTask(final N parent)
   {
     final DistributedDC<P, N> dc = dc();
@@ -61,7 +81,7 @@ final class DCRecursionTask<P, N>  implements Runnable, Serializable
       numberOfUnprocessedChildrenForParent--;
       dc.numberOfUnprocessedChildren.put(parent, numberOfUnprocessedChildrenForParent);
       if (numberOfUnprocessedChildrenForParent == 0)
-        dc.submitTask(new DCRecursionTask<>(parent));
+        dc.submitTask(new DCRecursionTask<>(parent, true));
     }
     finally
     {
@@ -72,17 +92,17 @@ final class DCRecursionTask<P, N>  implements Runnable, Serializable
   /**
    * @return A random generator approximately unique to this node and master random.
    */
-  private Random getRandom()
+  private Random getRandom(N node)
   {
     final DistributedDC<P, N> dc = dc();
     final int prime = 31;
     long seed = 1;
     seed = prime * seed + dc.options.masterRandomSeed;
-    seed = prime * seed + currentNode.hashCode();
+    seed = prime * seed + node.hashCode();
     return new Random(seed);
   }
   
-  private List<ParticlePopulation<P>> getChildrenPopulations(final List<N> childrenNodes)
+  private List<ParticlePopulation<P>> getChildrenPopulationsFromCluster(final List<N> childrenNodes)
   {
     final DistributedDC<P, N> dc = dc();
     final List<ParticlePopulation<P>> result = new ArrayList<>(childrenNodes.size());
