@@ -24,8 +24,8 @@ import com.hazelcast.core.IMap;
 
 /*
  * TODO:
- *  - recovery of the task if one of the nodes crashes
- *  - run on pre-terminals
+ *  - recovery of the task if one of the nodes crashes (hazeltask?)
+ *  - move towards EntryProcessor to avoid shuffling data? add locality ('near cache?') ?
  */
 
 public final class DistributedDC<P, N>
