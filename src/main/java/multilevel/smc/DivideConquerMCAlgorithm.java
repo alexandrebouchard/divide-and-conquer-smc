@@ -1,6 +1,7 @@
 package multilevel.smc;
 
 import java.io.File;
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -147,8 +148,9 @@ public class DivideConquerMCAlgorithm
 
   }
   
-  public static class Particle
+  public static class Particle implements Serializable
   {
+    private static final long serialVersionUID = 1L;
     public final Node node;
     public final BrownianModelCalculator message;
     public final List<BrownianModelCalculator> childrenMessages; // used to compute delta statistics

@@ -20,9 +20,10 @@ public final class DCRecursion
       final DCProposal<P, N> proposal)
   {
     ParticlePopulation<P> result = dcPropose(random, options.nParticles, childrenPopulations, proposal);
-    final double ess = result.getESS();
-    System.out.println("ESS @ " + proposal);
-    if (ess < options.essThreshold)
+    final double relativeESS = result.getRelativeESS();
+    System.out.println("relESS @ " + proposal + " = " + relativeESS);
+//    System.out.println("weights @ " + proposal + " = " + result.weightsToString());
+    if (relativeESS < options.relativeEssThreshold)
       result = result.resample(random, options.resamplingScheme);
     return result;
   }

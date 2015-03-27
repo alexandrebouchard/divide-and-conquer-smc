@@ -110,7 +110,7 @@ public class MultiLevelDataset
   {
     for (Node child : getChildren(node))
     {
-      result.addChildren(node, child);
+      result.addChild(node, child);
       buildTree(result, child);
     }
     

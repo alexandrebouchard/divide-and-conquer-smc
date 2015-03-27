@@ -12,12 +12,15 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
 {
   private static final long serialVersionUID = 1L;
   private final N currentNode;
-  private final transient DistributedDC<P, N> dc;
   
-  DCRecursionTask(N currentNode)
+  DCRecursionTask(final N currentNode)
   {
     this.currentNode = currentNode;
-    this.dc = DistributedDC.getInstance();
+  }
+  
+  private DistributedDC<P, N> dc()
+  {
+    return DistributedDC.getInstance();
   }
 
   @Override
@@ -25,14 +28,15 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
   {
     try
     {
-      List<N> childrenNodes = new ArrayList<>(dc.tree.getChildren(currentNode));
-      List<ParticlePopulation<P>> childrenPopulations = getChildrenPopulations(childrenNodes);
+      final List<N> childrenNodes = new ArrayList<>(dc().tree.getChildren(currentNode));
+      final List<ParticlePopulation<P>> childrenPopulations = getChildrenPopulations(childrenNodes);
       DCProposal<P, N> proposal = null;
-      Random random = getRandom();
-      synchronized (dc.proposalFactory) { proposal = dc.proposalFactory.build(random, currentNode, childrenNodes); }
-      ParticlePopulation<P> newPopulation = DCRecursion.dcRecurse(random, dc.options, childrenPopulations, proposal);
+      final Random random = getRandom();
+      final DistributedDC<P, N> dc = dc();
+      synchronized (dc().proposalFactory) { proposal = dc.proposalFactory.build(random, currentNode, childrenNodes); }
+      final ParticlePopulation<P> newPopulation = DCRecursion.dcRecurse(random, dc.options, childrenPopulations, proposal);
       dc.populations.put(currentNode, newPopulation);
-      N parent = dc.tree.getParent(currentNode);
+      final N parent = dc.tree.getParent(currentNode);
       if (parent != null)
         prepareNextTask(parent);
     }
@@ -42,8 +46,9 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
     }
   }
   
-  private void prepareNextTask(N parent)
+  private void prepareNextTask(final N parent)
   {
+    final DistributedDC<P, N> dc = dc();
     dc.nucLock.lock();
     try
     {
@@ -61,6 +66,7 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
 
   private Random getRandom()
   {
+    final DistributedDC<P, N> dc = dc();
     final int prime = 31;
     long seed = 1;
     seed = prime * seed + dc.options.masterRandomSeed;
@@ -68,9 +74,10 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
     return new Random(seed);
   }
   
-  private List<ParticlePopulation<P>> getChildrenPopulations(List<N> childrenNodes)
+  private List<ParticlePopulation<P>> getChildrenPopulations(final List<N> childrenNodes)
   {
-    List<ParticlePopulation<P>> result = new ArrayList<>(childrenNodes.size());
+    final DistributedDC<P, N> dc = dc();
+    final List<ParticlePopulation<P>> result = new ArrayList<>(childrenNodes.size());
     for (N child : childrenNodes)
       result.add(dc.populations.remove(child));
     return result;

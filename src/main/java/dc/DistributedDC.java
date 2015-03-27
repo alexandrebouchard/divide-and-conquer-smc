@@ -13,10 +13,8 @@ import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IExecutorService;
 import com.hazelcast.core.ILock;
 import com.hazelcast.core.IMap;
-import com.hazelcast.monitor.LocalExecutorStats;
 
-
-
+    // TODO: remove node replication!!
 
 public final class DistributedDC<P, N>
 {
@@ -24,13 +22,14 @@ public final class DistributedDC<P, N>
   final DCProposalFactory<P, N> proposalFactory;
   final DirectedTree<N> tree;
   
-  final HazelcastInstance cluster;
-  final IMap<N, ParticlePopulation<P>> populations;
-  final IMap<N, Integer> numberOfUnprocessedChildren;
-  final ILock nucLock; // lock for numberOfUnprocessedChildren
-  final IExecutorService executor;
+  HazelcastInstance cluster;
+  IMap<N, ParticlePopulation<P>> populations;
+  IMap<N, Integer> numberOfUnprocessedChildren;
+  ILock nucLock; // lock for numberOfUnprocessedChildren
+  IExecutorService executor;
   
   private boolean started = false;
+  private boolean initializing = false;
   
   @SuppressWarnings("rawtypes")
   private static DistributedDC instance = null;
@@ -48,7 +47,10 @@ public final class DistributedDC<P, N>
   public static <P,N> DistributedDC<P,N> getInstance()
   {
     if (instance == null)
-      throw new RuntimeException();
+      throw new RuntimeException("Use createInstance(..) first.");
+    while (instance.initializing)
+      try { Thread.sleep(1000); }
+      catch (Exception e) {}
     return instance;
   }
   
@@ -57,25 +59,19 @@ public final class DistributedDC<P, N>
     checkNotAlreadyStarted();
     setup();
     monitor();
-    
-    
   }
   
   private void monitor()
   {
-    LocalExecutorStats executorStatistics = executor.getLocalExecutorStats();
-    while (true)
-    {
-      System.out.println( "completed task count = " 
-          + executorStatistics.getCompletedTaskCount() );
-      
+    while (!populations.containsKey(tree.getRoot()))
       try { Thread.sleep(1000); }
       catch (Exception e) {}
-    }
+    cluster.shutdown();
   }
 
   private void setup()
   {
+    initHazelcast();
     ILock lock = cluster.getLock("SETUP_LOCK");
     lock.lock();
     // if this was not already done by some other node
@@ -90,6 +86,17 @@ public final class DistributedDC<P, N>
         submitTask(initialTask);
     } 
     lock.unlock();
+  }
+
+  private void initHazelcast()
+  {
+    this.initializing = true;
+    this.cluster = Hazelcast.newHazelcastInstance(getConfig());
+    this.populations = cluster.getMap("POPULATIONS");
+    this.numberOfUnprocessedChildren = cluster.getMap("N_UNPROCESSED");
+    this.nucLock = cluster.getLock("NUC_LOCK");
+    this.executor = cluster.getExecutorService("EXECUTOR");  
+    this.initializing  = false;
   }
 
   private List<DCRecursionTask<P,N>> initialTasks()
@@ -113,11 +120,6 @@ public final class DistributedDC<P, N>
     this.options = options;
     this.proposalFactory = proposalFactory;
     this.tree = tree;
-    this.cluster = Hazelcast.newHazelcastInstance(getConfig());
-    this.populations = cluster.getMap("POPULATIONS");
-    this.numberOfUnprocessedChildren = cluster.getMap("N_UNPROCESSED");
-    this.nucLock = cluster.getLock("NUC_LOCK");
-    this.executor = cluster.getExecutorService("EXECUTOR");
   }
   
   private String createClusterName()

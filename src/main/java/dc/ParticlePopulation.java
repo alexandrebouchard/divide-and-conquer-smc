@@ -1,6 +1,7 @@
 package dc;
 
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.DoubleStream;
@@ -77,6 +78,22 @@ public final class ParticlePopulation<P> implements Serializable
 
   public double getESS()
   {
+    if (normalizedWeights == null)
+      return normalizedWeights.length;
     return 1.0 / DoubleStream.of(normalizedWeights).map(w -> w*w).sum();
+  }
+  
+  public String weightsToString()
+  {
+    String result = "exp(" + logScaling + ") * ";
+    if (normalizedWeights == null)
+      result += "uniform(" + nParticles() + ")";
+    result +=  Arrays.toString(normalizedWeights);
+    return result;
+  }
+
+  public double getRelativeESS()
+  {
+    return getESS() / nParticles();
   }
 }

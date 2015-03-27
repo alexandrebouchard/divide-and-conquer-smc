@@ -124,7 +124,7 @@ public class MultiLevelMain implements Runnable
       DCOptions options = new DCOptions();
       options.masterRandomSeed = mainRandom.nextLong();
       options.nParticles = dcsmcOption.nParticles;
-      options.essThreshold = dcsmcOption.essThreshold;
+      options.relativeEssThreshold = dcsmcOption.essThreshold;
       if (!dcsmcOption.useBetaProposal)
         throw new RuntimeException();
       

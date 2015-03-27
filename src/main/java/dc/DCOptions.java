@@ -22,7 +22,7 @@ public class DCOptions implements Serializable
   public ResamplingScheme resamplingScheme = ResamplingScheme.MULTINOMIAL;
   
   @Option(gloss = "Resample when the ess is below this value.")
-  public double essThreshold = 1.0 + NumericalUtils.THRESHOLD;
+  public double relativeEssThreshold = 1.0 + NumericalUtils.THRESHOLD;
   
   @Option(gloss = "Set to different values if otherwise identical runs "
       + "should be prevented from communicating.")
