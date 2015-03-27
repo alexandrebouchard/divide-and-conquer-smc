@@ -22,6 +22,7 @@ import com.hazelcast.core.IMap;
 /*
  * TODO:
  *  - recovery of the task if one of the nodes crashes
+ *  - remove redundancy
  *  - run on pre-terminals
  *  - time and count
  */
@@ -62,8 +63,6 @@ public final class DistributedDC<P, N>
       sleep();
     return instance;
   }
-  
-
   
   public void start()
   {

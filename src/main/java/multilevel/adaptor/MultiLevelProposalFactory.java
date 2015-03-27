@@ -27,7 +27,7 @@ public final class MultiLevelProposalFactory implements DCProposalFactory<Partic
   public double variancePrior = 1.0;
   
   private transient MultiLevelDataset _dataset;
-  private MultiLevelDataset getDataset()
+  public MultiLevelDataset getDataset()
   {
     if (_dataset == null)
       _dataset = new MultiLevelDataset(dataFile);

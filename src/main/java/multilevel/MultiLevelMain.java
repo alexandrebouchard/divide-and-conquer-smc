@@ -5,14 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
-
-import com.google.common.collect.Lists;
-
-import dc.DCOptions;
-import dc.DistributedDC;
-import multilevel.adaptor.MultiLevelProposalFactory;
 import multilevel.io.MultiLevelDataset;
 import multilevel.mcmc.MultiLevelBMTreeFactor;
 import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
@@ -22,6 +14,10 @@ import multilevel.smc.DivideConquerMCAlgorithm.LogDensityApprox;
 import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
 import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import multilevel.smc.DivideConquerMCAlgorithm.Particle;
+
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
+
 import bayonet.coda.CodaParser;
 import bayonet.coda.SimpleCodaPlots;
 import blang.MCMCAlgorithm;
@@ -39,6 +35,8 @@ import briefj.opt.Option;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
 import briefj.run.Results;
+
+import com.google.common.collect.Lists;
 
 
 
@@ -72,7 +70,7 @@ public class MultiLevelMain implements Runnable
   @Option
   public int nThreadsPerNode = 1;
   
-  public static enum SamplingMethod { DC, STD, GIBBS, DDC }
+  public static enum SamplingMethod { DC, STD, GIBBS }
   
   public OutputManager output = new OutputManager();
 
@@ -117,26 +115,6 @@ public class MultiLevelMain implements Runnable
       factory.excludeNodeProcessor(RealVariableProcessor.class);
       MCMCAlgorithm mcmc = factory.build(modelSpec, false);
       mcmc.run();
-    }
-    else if (samplingMethod == SamplingMethod.DDC)
-    {
-      System.out.println("Starting distributed DC sampling");
-      MultiLevelProposalFactory proposalFactory = new MultiLevelProposalFactory();
-      proposalFactory.dataFile = inputData;
-      proposalFactory.variancePrior = modelOptions.variancePriorRateIfExponential;
-      if (!modelOptions.useTransform || modelOptions.useUniformVariance)
-        throw new RuntimeException();
-      
-      DCOptions options = new DCOptions();
-      options.masterRandomSeed = mainRandom.nextLong();
-      options.nParticles = dcsmcOption.nParticles;
-      options.relativeEssThreshold = dcsmcOption.essThreshold;
-      options.indexInCluster = indexInCluster;
-      options.nThreadsPerNode = nThreadsPerNode;
-      if (!dcsmcOption.useBetaProposal)
-        throw new RuntimeException();
-      
-      DistributedDC.createInstance(options, proposalFactory, dataset.getTree()).start();
     }
     else
       throw new RuntimeException();
