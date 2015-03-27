@@ -8,13 +8,18 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import bayonet.graphs.DirectedTree;
 
 import com.hazelcast.config.Config;
+import com.hazelcast.config.ExecutorConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IExecutorService;
 import com.hazelcast.core.ILock;
 import com.hazelcast.core.IMap;
 
-    // TODO: remove node replication!!
+/*
+ * TODO:
+ *  - recovery of the task if one of the nodes crashes
+ *  - run on pre-terminals
+ */
 
 public final class DistributedDC<P, N>
 {
@@ -125,7 +130,7 @@ public final class DistributedDC<P, N>
   private String createClusterName()
   {
     return "Cluster{" + 
-      options.getClass()  + "=" + HashCodeBuilder.reflectionHashCode(options) + "," +
+      options.getClass()  + "=" + HashCodeBuilder.reflectionHashCode(options, DCOptions.INDEX_IN_CLUSTER_FIELD_NAME) + "," +
       proposalFactory.getClass() + "=" + HashCodeBuilder.reflectionHashCode(proposalFactory) + "}";
   }
   
@@ -133,6 +138,9 @@ public final class DistributedDC<P, N>
   {
     Config result = new Config();
     result.getGroupConfig().setName(createClusterName());
+    ExecutorConfig ecfg = new ExecutorConfig();
+    ecfg.setPoolSize(options.nThreadsPerNode);
+    result.addExecutorConfig(ecfg);
     return result;
   }
 

@@ -66,6 +66,12 @@ public class MultiLevelMain implements Runnable
   @OptionSet(name = "factory")
   public final MCMCFactory factory = new MCMCFactory();
   
+  @Option
+  public int indexInCluster = 1;
+  
+  @Option
+  public int nThreadsPerNode = 1;
+  
   public static enum SamplingMethod { DC, STD, GIBBS, DDC }
   
   public OutputManager output = new OutputManager();
@@ -125,6 +131,8 @@ public class MultiLevelMain implements Runnable
       options.masterRandomSeed = mainRandom.nextLong();
       options.nParticles = dcsmcOption.nParticles;
       options.relativeEssThreshold = dcsmcOption.essThreshold;
+      options.indexInCluster = indexInCluster;
+      options.nThreadsPerNode = nThreadsPerNode;
       if (!dcsmcOption.useBetaProposal)
         throw new RuntimeException();
       

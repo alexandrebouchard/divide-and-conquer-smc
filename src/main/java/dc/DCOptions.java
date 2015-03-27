@@ -27,4 +27,14 @@ public class DCOptions implements Serializable
   @Option(gloss = "Set to different values if otherwise identical runs "
       + "should be prevented from communicating.")
   public int clusterSubGroup = 1;
+  
+  @Option
+  public int nThreadsPerNode = 1;
+  
+  @Option
+  public int indexInCluster = 1;  // see below
+  /**
+   * Warning: this constant should match exactly with the name of the field above.
+   */
+  static String INDEX_IN_CLUSTER_FIELD_NAME = "indexInCluster";
 }
