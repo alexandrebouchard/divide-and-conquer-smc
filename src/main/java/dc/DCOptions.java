@@ -31,8 +31,15 @@ public class DCOptions implements Serializable
   @Option
   public int nThreadsPerNode = 1;
   
+  @Option(gloss = "Wait to have a certain number of members to the cluster before starting.")
+  public int minimumNumberOfClusterMembersToStart = 1;
+  
+  @Option(gloss = "Max time to wait for other members to join, in minute.")
+  public int maximumTimeToWaitInMinutes = 1;
+  
   @Option
   public int indexInCluster = 1;  // see below
+
   /**
    * Warning: this constant should match exactly with the name of the field above.
    */

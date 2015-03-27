@@ -1,11 +1,15 @@
 package dc;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.time.StopWatch;
 
 import bayonet.graphs.DirectedTree;
+import briefj.repo.RepositoryUtils;
+import briefj.repo.VersionControlRepository;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.config.ExecutorConfig;
@@ -19,6 +23,7 @@ import com.hazelcast.core.IMap;
  * TODO:
  *  - recovery of the task if one of the nodes crashes
  *  - run on pre-terminals
+ *  - time and count
  */
 
 public final class DistributedDC<P, N>
@@ -54,10 +59,11 @@ public final class DistributedDC<P, N>
     if (instance == null)
       throw new RuntimeException("Use createInstance(..) first.");
     while (instance.initializing)
-      try { Thread.sleep(1000); }
-      catch (Exception e) {}
+      sleep();
     return instance;
   }
+  
+
   
   public void start()
   {
@@ -69,14 +75,14 @@ public final class DistributedDC<P, N>
   private void monitor()
   {
     while (!populations.containsKey(tree.getRoot()))
-      try { Thread.sleep(1000); }
-      catch (Exception e) {}
+      sleep();
     cluster.shutdown();
   }
 
   private void setup()
   {
     initHazelcast();
+    waitForEnoughWorkers();
     ILock lock = cluster.getLock("SETUP_LOCK");
     lock.lock();
     // if this was not already done by some other node
@@ -91,6 +97,16 @@ public final class DistributedDC<P, N>
         submitTask(initialTask);
     } 
     lock.unlock();
+  }
+
+  private void waitForEnoughWorkers()
+  {
+    StopWatch stopWatch = new StopWatch();
+    stopWatch.start();
+    while (
+        cluster.getCluster().getMembers().size() < options.minimumNumberOfClusterMembersToStart &&
+        stopWatch.getTime()/1000/60 < options.maximumTimeToWaitInMinutes)
+      sleep();
   }
 
   private void initHazelcast()
@@ -130,14 +146,28 @@ public final class DistributedDC<P, N>
   private String createClusterName()
   {
     return "Cluster{" + 
-      options.getClass()  + "=" + HashCodeBuilder.reflectionHashCode(options, DCOptions.INDEX_IN_CLUSTER_FIELD_NAME) + "," +
-      proposalFactory.getClass() + "=" + HashCodeBuilder.reflectionHashCode(proposalFactory) + "}";
+      codeVersion() + 
+      "hash(options)=" + HashCodeBuilder.reflectionHashCode(options, DCOptions.INDEX_IN_CLUSTER_FIELD_NAME) + "," +
+      "hash(" +proposalFactory.getClass().getName() + ")=" + HashCodeBuilder.reflectionHashCode(proposalFactory) + "}";
   }
   
+  private String codeVersion()
+  {
+    File classFile = RepositoryUtils.findSourceFile(this);
+    if (classFile == null) 
+      return "";
+    VersionControlRepository repository = RepositoryUtils.findRepository(classFile);
+    if (repository == null)
+      return "";
+    return "codeVersion=" + repository.getCommitIdentifier() + ",";
+  }
+
   private Config getConfig()
   {
     Config result = new Config();
-    result.getGroupConfig().setName(createClusterName());
+    String clusterName = createClusterName();
+    System.out.println("Cluster : " + clusterName);
+    result.getGroupConfig().setName(clusterName);
     ExecutorConfig ecfg = new ExecutorConfig();
     ecfg.setPoolSize(options.nThreadsPerNode);
     result.addExecutorConfig(ecfg);
@@ -147,5 +177,12 @@ public final class DistributedDC<P, N>
   void submitTask(DCRecursionTask<P,N> dcRecursionTask)
   {
     executor.execute(dcRecursionTask);
+  }
+  
+  private static final long sleepTimeMillis = 1000;
+  private static void sleep()
+  {
+    try { Thread.sleep(sleepTimeMillis); }
+    catch (Exception e) {}
   }
 }
