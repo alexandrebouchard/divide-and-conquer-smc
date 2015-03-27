@@ -1,6 +1,7 @@
 package dc;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Random;
 
@@ -17,12 +18,13 @@ public final class DCRecursion
       final Random random,
       final DCOptions options,
       final List<ParticlePopulation<P>> childrenPopulations,
-      final DCProposal<P, N> proposal)
+      final DCProposal<P> proposal,
+      final Collection<DCProcessor<P>> processors)
   {
     ParticlePopulation<P> result = dcPropose(random, options.nParticles, childrenPopulations, proposal);
+    for (DCProcessor<P> processor : processors)
+      processor.process(result, childrenPopulations);
     final double relativeESS = result.getRelativeESS();
-    System.out.println("relESS @ " + proposal + " = " + relativeESS);
-//    System.out.println("weights @ " + proposal + " = " + result.weightsToString());
     if (relativeESS < options.relativeEssThreshold)
       result = result.resample(random, options.resamplingScheme);
     return result;
@@ -32,7 +34,7 @@ public final class DCRecursion
     final Random random,
     final int nParticles,
     final List<ParticlePopulation<P>> childrenPopulations,
-    final DCProposal<P, N> proposal)
+    final DCProposal<P> proposal)
   {
     final int nChildren = childrenPopulations.size();
     if (nChildren != childrenPopulations.size())
@@ -41,7 +43,7 @@ public final class DCRecursion
     final List<P> particles = new ArrayList<>(nParticles);
     final double [] logWeights = new double[nParticles];
 
-    for (ParticlePopulation<P> childPopulation : childrenPopulations)
+    for (final ParticlePopulation<P> childPopulation : childrenPopulations)
       if (childPopulation.nParticles() != nParticles)
         throw new RuntimeException();
     
@@ -49,7 +51,7 @@ public final class DCRecursion
     {
       final List<P> childrenParticles = new ArrayList<>(nChildren);
       double childrenWeightProduct = 1.0;
-      for (ParticlePopulation<P> childPopulation : childrenPopulations)
+      for (final ParticlePopulation<P> childPopulation : childrenPopulations)
       {
         childrenParticles.add(childPopulation.particles.get(particleIndex));
         childrenWeightProduct *= childPopulation.getNormalizedWeight(particleIndex);

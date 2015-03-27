@@ -1,5 +1,6 @@
 package dc;
 
+import multilevel.adaptor.MultiLevelProcessorFactory;
 import multilevel.adaptor.MultiLevelProposalFactory;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
@@ -17,7 +18,13 @@ public class DDCMain implements Runnable
   @Override
   public void run()
   {
-    DistributedDC.createInstance(options, proposalFactory, proposalFactory.getDataset().getTree()).start();
+    DistributedDC
+      .createInstance(
+          options, 
+          proposalFactory, 
+          proposalFactory.getDataset().getTree(),
+          new MultiLevelProcessorFactory())
+      .start();
   }
 
   public static void main(String [] args)

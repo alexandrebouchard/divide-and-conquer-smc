@@ -35,7 +35,7 @@ public final class MultiLevelProposalFactory implements DCProposalFactory<Partic
   }
 
   @Override
-  public DCProposal<Particle, Node> build(Random random, Node currentNode,
+  public DCProposal<Particle> build(Random random, Node currentNode,
       List<Node> childrenNodes)
   {
     if (childrenNodes.isEmpty())

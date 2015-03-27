@@ -8,7 +8,7 @@ import java.util.Random;
 
 
 
-public final class DCRecursionTask<P, N>  implements Runnable, Serializable
+final class DCRecursionTask<P, N>  implements Runnable, Serializable
 {
   private static final long serialVersionUID = 1L;
   private final N currentNode;
@@ -30,11 +30,16 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
     {
       final List<N> childrenNodes = new ArrayList<>(dc().tree.getChildren(currentNode));
       final List<ParticlePopulation<P>> childrenPopulations = getChildrenPopulations(childrenNodes);
-      DCProposal<P, N> proposal = null;
+      DCProposal<P> proposal = null;
+      List<DCProcessor<P>> processors = null;
       final Random random = getRandom();
       final DistributedDC<P, N> dc = dc();
-      synchronized (dc().proposalFactory) { proposal = dc.proposalFactory.build(random, currentNode, childrenNodes); }
-      final ParticlePopulation<P> newPopulation = DCRecursion.dcRecurse(random, dc.options, childrenPopulations, proposal);
+      synchronized (dc().proposalFactory) 
+      { 
+        proposal = dc.proposalFactory.build(random, currentNode, childrenNodes); 
+        processors = dc.processorFactory.build(new DCProcessorFactoryContext<P,N>(currentNode, dc().tree));
+      }
+      final ParticlePopulation<P> newPopulation = DCRecursion.dcRecurse(random, dc.options, childrenPopulations, proposal, processors);
       dc.populations.put(currentNode, newPopulation);
       final N parent = dc.tree.getParent(currentNode);
       if (parent != null)
@@ -64,6 +69,9 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
     }
   }
 
+  /**
+   * @return A random generator approximately unique to this node and master random.
+   */
   private Random getRandom()
   {
     final DistributedDC<P, N> dc = dc();
@@ -79,7 +87,7 @@ public final class DCRecursionTask<P, N>  implements Runnable, Serializable
     final DistributedDC<P, N> dc = dc();
     final List<ParticlePopulation<P>> result = new ArrayList<>(childrenNodes.size());
     for (N child : childrenNodes)
-      result.add(dc.populations.remove(child));
+      result.add(dc.populations.remove(child)); // get and remove at same time (won't be needed anymore)
     return result;
   }
 }

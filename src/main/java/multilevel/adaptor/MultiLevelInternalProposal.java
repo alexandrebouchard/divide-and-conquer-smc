@@ -17,7 +17,7 @@ import dc.DCProposal;
 
 
 
-public final class MultiLevelInternalProposal implements DCProposal<Particle, Node>
+public final class MultiLevelInternalProposal implements DCProposal<Particle>
 {
   private final double variancePrior;
   private final Node node;

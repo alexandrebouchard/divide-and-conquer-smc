@@ -15,7 +15,7 @@ import dc.DCProposal;
 
 
 
-public final class MultiLevelLeafProposal implements DCProposal<Particle, Node>
+public final class MultiLevelLeafProposal implements DCProposal<Particle>
 {
   private final BetaDistribution beta;
   private final int numberOfTrials;

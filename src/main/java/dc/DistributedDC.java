@@ -8,11 +8,14 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.time.StopWatch;
 
 import bayonet.graphs.DirectedTree;
+import briefj.BriefIO;
 import briefj.repo.RepositoryUtils;
 import briefj.repo.VersionControlRepository;
+import briefj.run.Results;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.config.ExecutorConfig;
+import com.hazelcast.config.MapConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import com.hazelcast.core.IExecutorService;
@@ -22,9 +25,7 @@ import com.hazelcast.core.IMap;
 /*
  * TODO:
  *  - recovery of the task if one of the nodes crashes
- *  - remove redundancy
  *  - run on pre-terminals
- *  - time and count
  */
 
 public final class DistributedDC<P, N>
@@ -32,6 +33,7 @@ public final class DistributedDC<P, N>
   final DCOptions options;
   final DCProposalFactory<P, N> proposalFactory;
   final DirectedTree<N> tree;
+  final DCProcessorFactory<P, N> processorFactory;
   
   HazelcastInstance cluster;
   IMap<N, ParticlePopulation<P>> populations;
@@ -46,11 +48,15 @@ public final class DistributedDC<P, N>
   private static DistributedDC instance = null;
   
   @SuppressWarnings("unchecked")
-  public static <P,N> DistributedDC<P,N> createInstance(DCOptions options, DCProposalFactory<P, N> proposalFactory, DirectedTree<N> tree)
+  public static <P,N> DistributedDC<P,N> createInstance(
+      DCOptions options, 
+      DCProposalFactory<P, N> proposalFactory, 
+      DirectedTree<N> tree,
+      DCProcessorFactory<P, N> processorFactory)
   {
     if (instance != null)
       throw new RuntimeException();
-    instance = new DistributedDC<P,N>(options, proposalFactory, tree);
+    instance = new DistributedDC<P,N>(options, proposalFactory, tree, processorFactory);
     return instance;
   }
   
@@ -73,9 +79,18 @@ public final class DistributedDC<P, N>
   
   private void monitor()
   {
+    StopWatch workTime = new StopWatch();
+    workTime.start();
     while (!populations.containsKey(tree.getRoot()))
       sleep();
+    record(workTime);
     cluster.shutdown();
+  }
+
+  private void record(StopWatch workTime)
+  {
+    BriefIO.write(Results.getFileInResultFolder("workTime"), "" + workTime.getTime());
+    BriefIO.write(Results.getFileInResultFolder("nWorkers"), "" + cluster.getCluster().getMembers().size());
   }
 
   private void setup()
@@ -112,7 +127,7 @@ public final class DistributedDC<P, N>
   {
     this.initializing = true;
     this.cluster = Hazelcast.newHazelcastInstance(getConfig());
-    this.populations = cluster.getMap("POPULATIONS");
+    this.populations = cluster.getMap(POPULATION_MAP_NAME);
     this.numberOfUnprocessedChildren = cluster.getMap("N_UNPROCESSED");
     this.nucLock = cluster.getLock("NUC_LOCK");
     this.executor = cluster.getExecutorService("EXECUTOR");  
@@ -135,11 +150,16 @@ public final class DistributedDC<P, N>
     started = true;
   }
 
-  private DistributedDC(DCOptions options, DCProposalFactory<P, N> proposalFactory, DirectedTree<N> tree)
+  private DistributedDC(
+      final DCOptions options, 
+      final DCProposalFactory<P, N> proposalFactory, 
+      final DirectedTree<N> tree,
+      final DCProcessorFactory<P, N> processorFactory)
   {
     this.options = options;
     this.proposalFactory = proposalFactory;
     this.tree = tree;
+    this.processorFactory = processorFactory;
   }
   
   private String createClusterName()
@@ -167,9 +187,18 @@ public final class DistributedDC<P, N>
     String clusterName = createClusterName();
     System.out.println("Cluster : " + clusterName);
     result.getGroupConfig().setName(clusterName);
+    
+    // set n threads in executors
     ExecutorConfig ecfg = new ExecutorConfig();
     ecfg.setPoolSize(options.nThreadsPerNode);
     result.addExecutorConfig(ecfg);
+    
+    // disable map back up
+    MapConfig mc = new MapConfig();
+    mc.setName(POPULATION_MAP_NAME);
+    mc.setBackupCount(0);
+    result.addMapConfig(mc);
+    
     return result;
   }
 
@@ -184,4 +213,6 @@ public final class DistributedDC<P, N>
     try { Thread.sleep(sleepTimeMillis); }
     catch (Exception e) {}
   }
+  
+  private static final String POPULATION_MAP_NAME = "POPULATIONS";
 }
