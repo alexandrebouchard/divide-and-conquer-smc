@@ -34,7 +34,7 @@ public class DCOptions implements Serializable
   @Option(gloss = "Wait to have a certain number of members to the cluster before starting.")
   public int minimumNumberOfClusterMembersToStart = 1;
   
-  @Option(gloss = "Max time to wait for other members to join, in minute.")
+  @Option(gloss = "Max time to wait for other members to join (minutes).")
   public int maximumTimeToWaitInMinutes = 1;
   
   @Option
@@ -44,7 +44,7 @@ public class DCOptions implements Serializable
   public int indexInCluster = 1;  // see below
 
   /**
-   * Warning: this constant should match exactly with the name of the field above.
+   * Warning: the constant below should match exactly with the name of the field above.
    */
   static String INDEX_IN_CLUSTER_FIELD_NAME = "indexInCluster";
 }
