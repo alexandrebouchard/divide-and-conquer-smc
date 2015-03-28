@@ -14,7 +14,7 @@ import org.apache.commons.lang3.tuple.Pair;
 public final class DCRecursion
 {
   
-  public static <P, N> ParticlePopulation<P> dcRecurse(
+  public static <P> ParticlePopulation<P> dcRecurse(
       final Random random,
       final DCOptions options,
       final List<ParticlePopulation<P>> childrenPopulations,
@@ -30,7 +30,7 @@ public final class DCRecursion
     return result;
   }
   
-  private static <P, N> ParticlePopulation<P> dcPropose(
+  private static <P> ParticlePopulation<P> dcPropose(
     final Random random,
     final int nParticles,
     final List<ParticlePopulation<P>> childrenPopulations,

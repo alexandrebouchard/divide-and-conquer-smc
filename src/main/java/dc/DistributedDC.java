@@ -3,6 +3,9 @@ package dc;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.locks.Lock;
 
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.time.StopWatch;
@@ -18,9 +21,6 @@ import com.hazelcast.config.ExecutorConfig;
 import com.hazelcast.config.MapConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
-import com.hazelcast.core.IExecutorService;
-import com.hazelcast.core.ILock;
-import com.hazelcast.core.IMap;
 
 /*
  * TODO:
@@ -33,13 +33,13 @@ public final class DistributedDC<P, N>
   final DCOptions options;
   final DCProposalFactory<P, N> proposalFactory;
   final DirectedTree<N> tree;
-  final DCProcessorFactory<P, N> processorFactory;
+  final List<DCProcessorFactory<P, N>> processorFactories = new ArrayList<>();
   
   HazelcastInstance cluster;
-  IMap<N, ParticlePopulation<P>> populations;
-  IMap<N, Integer> numberOfUnprocessedChildren;
-  ILock nucLock; // lock for numberOfUnprocessedChildren
-  IExecutorService executor;
+  Map<N, ParticlePopulation<P>> populations;
+  Map<N, Integer> numberOfUnprocessedChildren;
+  Lock nucLock; // lock for numberOfUnprocessedChildren
+  ExecutorService executor;
   
   private boolean started = false;
   private boolean initializing = false;
@@ -51,13 +51,17 @@ public final class DistributedDC<P, N>
   public static <P,N> DistributedDC<P,N> createInstance(
       DCOptions options, 
       DCProposalFactory<P, N> proposalFactory, 
-      DirectedTree<N> tree,
-      DCProcessorFactory<P, N> processorFactory)
+      DirectedTree<N> tree)
   {
     if (instance != null)
       throw new RuntimeException();
-    instance = new DistributedDC<P,N>(options, proposalFactory, tree, processorFactory);
+    instance = new DistributedDC<P,N>(options, proposalFactory, tree);
     return instance;
+  }
+  
+  public void addProcessorFactory(DCProcessorFactory<P, N> factory)
+  {
+    this.processorFactories.add(factory);
   }
   
   @SuppressWarnings("unchecked")
@@ -90,14 +94,13 @@ public final class DistributedDC<P, N>
   private void record(StopWatch workTime)
   {
     BriefIO.write(Results.getFileInResultFolder("workTime"), "" + workTime.getTime());
-    BriefIO.write(Results.getFileInResultFolder("nWorkers"), "" + cluster.getCluster().getMembers().size());
   }
 
   private void setup()
   {
     initHazelcast();
     waitForEnoughWorkers();
-    ILock lock = cluster.getLock("SETUP_LOCK");
+    Lock lock = cluster.getLock("SETUP_LOCK");
     lock.lock();
     // if this was not already done by some other node
     if (numberOfUnprocessedChildren.isEmpty())
@@ -164,13 +167,13 @@ public final class DistributedDC<P, N>
   private DistributedDC(
       final DCOptions options, 
       final DCProposalFactory<P, N> proposalFactory, 
-      final DirectedTree<N> tree,
-      final DCProcessorFactory<P, N> processorFactory)
+      final DirectedTree<N> tree)
   {
     this.options = options;
     this.proposalFactory = proposalFactory;
     this.tree = tree;
-    this.processorFactory = processorFactory;
+    // add some default processors
+    this.processorFactories.add(new DefaultProcessorFactory<P,N>());
   }
   
   private String createClusterName()

@@ -51,13 +51,14 @@ final class DCRecursionTask<P, N>  implements Runnable, Serializable
         getChildrenPopulationsFromCluster(childrenNodes) : 
         getChildrenPopulationsRecursively(childrenNodes);
     DCProposal<P> proposal = null;
-    List<DCProcessor<P>> processors = null;
+    List<DCProcessor<P>> processors = new ArrayList<>();
     final Random random = getRandom(node);
     
     synchronized (dc.proposalFactory) 
     { 
       proposal = dc.proposalFactory.build(random, node, childrenNodes); 
-      processors = dc.processorFactory.build(new DCProcessorFactoryContext<P,N>(node, dc.tree));
+      for (DCProcessorFactory<P, N> factory : dc.processorFactories)
+        processors.add(factory.build(new DCProcessorFactoryContext<P,N>(node, dc.tree)));
     }
     return DCRecursion.dcRecurse(random, dc.options, childrenPopulations, proposal, processors);
   }

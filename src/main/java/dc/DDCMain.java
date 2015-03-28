@@ -1,7 +1,9 @@
 package dc;
 
+import multilevel.Node;
 import multilevel.adaptor.MultiLevelProcessorFactory;
 import multilevel.adaptor.MultiLevelProposalFactory;
+import multilevel.smc.DivideConquerMCAlgorithm.Particle;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
 
@@ -18,13 +20,13 @@ public class DDCMain implements Runnable
   @Override
   public void run()
   {
-    DistributedDC
+    DistributedDC<Particle, Node> instance = DistributedDC
       .createInstance(
           options, 
           proposalFactory, 
-          proposalFactory.getDataset().getTree(),
-          new MultiLevelProcessorFactory())
-      .start();
+          proposalFactory.getDataset().getTree());
+    instance.addProcessorFactory(new MultiLevelProcessorFactory());
+    instance.start();
   }
 
   public static void main(String [] args)
