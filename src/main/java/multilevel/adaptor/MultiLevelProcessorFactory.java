@@ -20,4 +20,9 @@ public final class MultiLevelProcessorFactory implements DCProcessorFactory<Part
     return new NoOpProcessor<>();
   }
 
+  @Override
+  public void close()
+  {
+  }
+
 }

@@ -11,10 +11,8 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.time.StopWatch;
 
 import bayonet.graphs.DirectedTree;
-import briefj.BriefIO;
 import briefj.repo.RepositoryUtils;
 import briefj.repo.VersionControlRepository;
-import briefj.run.Results;
 
 import com.hazelcast.config.Config;
 import com.hazelcast.config.ExecutorConfig;
@@ -38,6 +36,7 @@ public final class DistributedDC<P, N>
   HazelcastInstance cluster;
   Map<N, ParticlePopulation<P>> populations;
   Map<N, Integer> numberOfUnprocessedChildren;
+  Map<String,Boolean> clusterStatus;
   Lock nucLock; // lock for numberOfUnprocessedChildren
   ExecutorService executor;
   
@@ -81,19 +80,14 @@ public final class DistributedDC<P, N>
     monitor();
   }
   
+  // Note: there seems to be something wrong here, compare timing.csv and workTime in /Users/bouchard/Documents/experiments/multilevelSMC3/plans/ddc-16-3-results/all/2015-03-29-15-29-00-cGBLs45C.exec
   private void monitor()
   {
-    StopWatch workTime = new StopWatch();
-    workTime.start();
     while (!populations.containsKey(tree.getRoot()))
       sleep();
-    record(workTime);
+    for (DCProcessorFactory<P, N> factory : processorFactories)
+      factory.close();
     cluster.shutdown();
-  }
-
-  private void record(StopWatch workTime)
-  {
-    BriefIO.write(Results.getFileInResultFolder("workTime"), "" + workTime.getTime());
   }
 
   private void setup()
@@ -103,7 +97,7 @@ public final class DistributedDC<P, N>
     Lock lock = cluster.getLock("SETUP_LOCK");
     lock.lock();
     // if this was not already done by some other node
-    if (numberOfUnprocessedChildren.isEmpty())
+    if (!clusterStatus.containsKey(SETUP_COMPLETE))
     {
       // setup numberOfUnprocessedChildren
       for (N node : tree.getNodes())
@@ -112,10 +106,12 @@ public final class DistributedDC<P, N>
       // setup basic tasks
       for (DCRecursionTask<P,N> initialTask : initialTasks())
         submitTask(initialTask);
+      
+      clusterStatus.put(SETUP_COMPLETE, true);
     } 
     lock.unlock();
   }
-
+  
   private void waitForEnoughWorkers()
   {
     StopWatch stopWatch = new StopWatch();
@@ -130,10 +126,13 @@ public final class DistributedDC<P, N>
   {
     this.initializing = true;
     this.cluster = Hazelcast.newHazelcastInstance(getConfig());
-    this.populations = cluster.getMap(POPULATION_MAP_NAME);
-    this.numberOfUnprocessedChildren = cluster.getMap("N_UNPROCESSED");
-    this.nucLock = cluster.getLock("NUC_LOCK");
-    this.executor = cluster.getExecutorService("EXECUTOR");  
+    { 
+      this.clusterStatus = cluster.getMap("CLUSTER_STATUS");
+      this.populations = cluster.getMap(POPULATION_MAP_NAME);
+      this.numberOfUnprocessedChildren = cluster.getMap("N_UNPROCESSED");
+      this.nucLock = cluster.getLock("NUC_LOCK");
+      this.executor = cluster.getExecutorService("EXECUTOR");  
+    }
     this.initializing  = false;
   }
 
@@ -172,7 +171,7 @@ public final class DistributedDC<P, N>
     this.options = options;
     this.proposalFactory = proposalFactory;
     this.tree = tree;
-    // add some default processors
+    // add a default processor
     this.processorFactories.add(new DefaultProcessorFactory<P,N>());
   }
   
@@ -218,7 +217,7 @@ public final class DistributedDC<P, N>
 
   void submitTask(DCRecursionTask<P,N> dcRecursionTask)
   {
-    executor.execute(dcRecursionTask);
+    executor.submit(dcRecursionTask);
   }
   
   private static final long sleepTimeMillis = 1000;
@@ -229,4 +228,6 @@ public final class DistributedDC<P, N>
   }
   
   private static final String POPULATION_MAP_NAME = "POPULATIONS";
+  private static final String SETUP_COMPLETE = "SETUP_COMPLETE";
+
 }

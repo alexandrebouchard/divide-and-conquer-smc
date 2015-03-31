@@ -21,12 +21,14 @@ public class DefaultProcessorFactory<P, N> implements DCProcessorFactory<P, N>
     output = new OutputManager();
     output.setOutputFolder(Results.getResultFolder());
     globalTime = new StopWatch();
-    globalTime.start();
   }
 
   @Override
   public DCProcessor<P> build(final DCProcessorFactoryContext<P, N> context)
   {
+    if (!globalTime.isStarted())
+      globalTime.start();
+    
     StopWatch timer = new StopWatch();
     timer.start();
     return new DCProcessor<P>() {
@@ -51,6 +53,11 @@ public class DefaultProcessorFactory<P, N> implements DCProcessorFactory<P, N>
           BriefIO.write(Results.getFileInResultFolder("logZ"), "" + populationBeforeResampling.logNormEstimate());
       }
     };
+  }
+  
+  public void close()
+  {
+    BriefIO.write(Results.getFileInResultFolder("workTime"), "" + globalTime.getTime());
   }
 
 }
