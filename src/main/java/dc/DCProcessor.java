@@ -2,6 +2,8 @@ package dc;
 
 import java.util.List;
 
+import bayonet.smc.ParticlePopulation;
+
 
 
 /**

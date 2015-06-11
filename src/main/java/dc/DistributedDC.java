@@ -11,6 +11,7 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.time.StopWatch;
 
 import bayonet.graphs.DirectedTree;
+import bayonet.smc.ParticlePopulation;
 import briefj.repo.RepositoryUtils;
 import briefj.repo.VersionControlRepository;
 

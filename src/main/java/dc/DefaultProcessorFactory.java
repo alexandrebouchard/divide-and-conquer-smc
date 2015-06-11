@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.time.StopWatch;
 
+import bayonet.smc.ParticlePopulation;
 import briefj.BriefIO;
 import briefj.OutputManager;
 import briefj.run.Results;
