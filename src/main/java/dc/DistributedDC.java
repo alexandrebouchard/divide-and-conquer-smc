@@ -21,11 +21,7 @@ import com.hazelcast.config.MapConfig;
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 
-/*
- * TODO:
- *  - recovery of the task if one of the nodes crashes (hazeltask?)
- *  - move towards EntryProcessor to avoid shuffling data? add locality ('near cache?') ?
- */
+
 
 public final class DistributedDC<P, N>
 {
@@ -40,6 +36,12 @@ public final class DistributedDC<P, N>
   Map<String,Boolean> clusterStatus;
   Lock nucLock; // lock for numberOfUnprocessedChildren
   ExecutorService executor;
+  
+  /*
+   * TODO:
+   *  - recovery of the task if one of the nodes crashes 
+   *  - move towards EntryProcessor to avoid shuffling data? add locality ('near cache?') ?
+   */
   
   private boolean started = false;
   private boolean initializing = false;
@@ -81,7 +83,6 @@ public final class DistributedDC<P, N>
     monitor();
   }
   
-  // Note: there seems to be something wrong here, compare timing.csv and workTime in /Users/bouchard/Documents/experiments/multilevelSMC3/plans/ddc-16-3-results/all/2015-03-29-15-29-00-cGBLs45C.exec
   private void monitor()
   {
     while (!populations.containsKey(tree.getRoot()))

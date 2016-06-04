@@ -37,7 +37,7 @@ public class DCOptions implements Serializable
   @Option(gloss = "Max time to wait for other members to join (minutes).")
   public int maximumTimeToWaitInMinutes = 1;
   
-  @Option
+  @Option(gloss = "A method for coarsening the granularity of basic tasks. See README.md")
   public int maximumDistributionDepth = Integer.MAX_VALUE;
   
   @Option(gloss = "Indexing cluster members is optional. This is just convenient in certain "
