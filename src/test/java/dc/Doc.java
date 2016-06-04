@@ -128,13 +128,21 @@ public class Doc
    * depend on the memory location and will be different from machine to machine). A reasonable default implementation 
    * is in ``multilevel.Node``. This will become generic type ``N`` in the following. 
    * 
-   * Next, the main step consists in providing code that proposes, i.e. merges sub-populations. 
+   * Next, the main step consists in providing code that proposes, i.e. merges sub-populations. This is done by 
+   * creating a class only required to implement a single method, namely:
    */
-  @Tutorial(startTutorial = "README.md", showSource = false)
+  @Tutorial(startTutorial = "README.md", showSource = false, nextStep = DCProposal.class)
   public void instructions() {}
   
+  /**
+   * Next, one should create a factory for the proposal defined above. Again, this is done by creating a 
+   * class only required to implement a single method, namely:
+   */
+  @Tutorial(showSource = false, nextStep = DCProcessorFactory.class)
+  public void instructionsContinued() {}
+  
   // push maven!
-  // add some basic doc in the separate repo on experiments SMC..2
+  // add some basic doc in the separate repo on experiments multilevelSMC-experiments
  
   
 }
