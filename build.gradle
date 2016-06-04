@@ -39,9 +39,17 @@ dependencies {
   compile group: 'ca.ubc.stat', name: 'briefj', version: '2.4.11'
   compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.19'
   compile group: 'com.hazelcast', name: 'hazelcast', version: '3.5-EA'
+  compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.2'
 }
 
-
+task(tutorialj, dependsOn: ['build','testClasses'], type: JavaExec) {
+  main = 'tutorialj.Main'
+  classpath {
+    configurations.compile
+    sourceSets.main.runtimeClasspath
+    sourceSets.test.runtimeClasspath
+  }
+}
 
 buildscript {
   repositories {

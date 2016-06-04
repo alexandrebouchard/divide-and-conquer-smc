@@ -40,7 +40,8 @@ public class DCOptions implements Serializable
   @Option
   public int maximumDistributionDepth = Integer.MAX_VALUE;
   
-  @Option
+  @Option(gloss = "Indexing cluster members is optional. This is just convenient in certain "
+      + "scenarios to help keep track of jobs e.g. when launching jobs with westrun.")
   public int indexInCluster = 1;  // see below
 
   /**
