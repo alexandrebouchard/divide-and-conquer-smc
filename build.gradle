@@ -40,6 +40,7 @@ dependencies {
   compile group: 'ca.ubc.stat', name: 'bayonet', version: '2.3.19'
   compile group: 'com.hazelcast', name: 'hazelcast', version: '3.5-EA'
   compile group: 'org.slf4j', name: 'slf4j-simple', version: '1.6.2'
+  compile group: 'ca.ubc.stat', name: 'xlinear', version: '1.0.0'
 }
 
 task(tutorialj, dependsOn: ['build','testClasses'], type: JavaExec) {

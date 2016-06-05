@@ -17,7 +17,7 @@ public class DefaultProcessorFactory<P, N> implements DCProcessorFactory<P, N>
   private final OutputManager output;
   private final StopWatch globalTime;
   
-  DefaultProcessorFactory()
+  public DefaultProcessorFactory()
   {
     output = new OutputManager();
     output.setOutputFolder(Results.getResultFolder());

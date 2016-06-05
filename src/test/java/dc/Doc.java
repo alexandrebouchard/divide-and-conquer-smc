@@ -1,6 +1,19 @@
 package dc;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
+import multilevel.Node;
+
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.Test;
+
+import bayonet.graphs.DirectedTree;
 import tutorialj.Tutorial;
+import xlinear.DenseMatrix;
+import xlinear.Matrix;
+import xlinear.MatrixOperations;
 
 public class Doc
 {
@@ -129,17 +142,155 @@ public class Doc
    * is in ``multilevel.Node``. This will become generic type ``N`` in the following. 
    * 
    * Next, the main step consists in providing code that proposes, i.e. merges sub-populations. This is done by 
-   * creating a class only required to implement a single method, namely:
+   * creating a class implementing ``dc.DCProposal``. This class will be responsible for both proposing, and 
+   * providing a LOG weight update for the proposal (including taking care of computing the ratio in step 2(c) 
+   * of Algorithm 2 in the arXiv pre-print). 
+   * 
+   * Here is an example, based on a simple model where transitions are provided 
    */
-  @Tutorial(startTutorial = "README.md", showSource = false, nextStep = DCProposal.class)
-  public void instructions() {}
+  @Tutorial(startTutorial = "README.md", showSource = true, showSignature = true)
+  public DCProposal<Integer> markovChainNaiveProposal(Matrix transition, Matrix prior) 
+  {
+    final int nStates = transition.nRows();
+    checkValidMarkovChain(transition, prior);
+    // Model: a finite state Markov chain, with..
+    //   transition, a n by n transition matrix
+    //   initial, a n by 1 initial distribution (i.e. prior on root)
+    // NB: this is just for illustration/testing purpose as one can do exact inference 
+    //     on this model
+    return new DCProposal<Integer>() { // In this example, particles are just integers
+      /**
+       * Propose a parent particle given the children. 
+       * All the randomness should be obtained via the provided random object.
+       * 
+       * @param random
+       * @param childrenParticles
+       * @return A pair containing the LOG weight update and the proposed particle
+       *    In the basic algorithm, this is given by gamma(x') / q(x'|x_1, .., x_C) / gamma(x_1) / .. / gamma(x_C)
+       *    Where x' is the tree, and x_1, .., x_C are the C children subtrees.
+       */
+      @Override
+      public Pair<Double, Integer> propose(Random random, List<Integer> childrenParticles)
+      {
+        // Naive proposal: uniform
+        Integer proposal = random.nextInt(nStates);
+        double weightUpdate = nStates; // 1 / q(x'|x), where q(x'|x) = 1/nStates
+        weightUpdate *= prior.get(proposal, 0); // prior(proposal) is part of gamma(x')
+        for (Integer childState : childrenParticles)
+        {
+          weightUpdate *= transition.get(proposal, childState); // transition(child | proposal) is part of gamma(x')
+          weightUpdate /= prior.get(proposal, 0); // everything else in gamma(x_c) gets cancelled with gamma(x')
+        }
+        return Pair.of(Math.log(weightUpdate), proposal);
+      }
+    };
+  }
   
+  @Test
+  @Tutorial(showSource = true)
+  public void testMarkovChainExample()
+  {
+    System.out.println(transition);
+    // 2 x 2 dense matrix
+    //       0         1       
+    // 0 |   0.800000  0.200000
+    // 1 |   0.200000  0.800000
+    
+    System.out.println(prior);
+    // 2 x 1 dense matrix
+    // 0       
+    // 0 |   0.500000
+    // 1 |   0.500000
+    
+    DCProposalFactory<Integer,Node> factory = new DCProposalFactory<Integer,Node>() 
+    {
+      @Override
+      public DCProposal<Integer> build(
+          Random random, 
+          Node currentNode,
+          List<Node> childrenNodes)
+      {
+        if (childrenNodes.size() == 0)
+          // In this toy example, we set the leaves as observed and equal to 0
+          // This is modelled as a proposal that always returns state 0 if this 
+          // is a leaf.
+          return (rand, children) -> Pair.of(0.0, 0);
+        else
+          // Else, return the proposal defined above
+          return markovChainNaiveProposal(transition, prior);
+      }
+    };
+    
+    // Topology, here a simple perfect binary tree of depth 3
+    final DirectedTree<Node> tree = perfectBinaryTree(3);
+    
+    // Use DCOptions to set option, either programmatically as below, 
+    // or see DDCMain for an example how to parse these options from command line.
+    DCOptions options = new DCOptions();
+    options.nThreadsPerNode = 2;
+    
+    // Prepare the simulation
+    DistributedDC<Integer, Node> instance = DistributedDC.createInstance(options, factory, tree);
+    
+    // By default, the processor below is included, which prints and records in the result folder 
+    // some basic statistics like ESS, logZ estimates, etc. I.e. the line below is not needed:
+    //   instance.addProcessorFactory(new DefaultProcessorFactory<>());
+    
+    // You can implement ProcessorFactory and add it to the instance for more detailed 
+    // processing of the particles and their weights. 
+    
+    // Perform the  sampling
+    instance.start();
+  }
+  
+  public static DirectedTree<Node> perfectBinaryTree(int depth)
+  {
+    Node root = new Node(Collections.singletonList("0"));
+    DirectedTree<Node> result = new DirectedTree<Node>(root);
+    buildTree(result, root, depth);
+    return result;
+  }
+  
+  private static void buildTree(DirectedTree<Node> result, Node currentNode, int remainingDepth)
+  {
+    if (remainingDepth <= 0)
+      return;
+    for (int i = 0; i < 2; i++)
+    {
+      Node child = currentNode.child("" + i);
+      result.addChild(currentNode, child);
+      buildTree(result, child, remainingDepth - 1);
+    }
+  }
+  
+  private DenseMatrix transition = MatrixOperations.denseCopy(new double [][] {
+    {0.8, 0.2},
+    {0.2, 0.8}
+  });
+  
+  private DenseMatrix prior = MatrixOperations.denseCopy(new double[] {0.5, 0.5});
+  
+  private void checkValidMarkovChain(Matrix transition, Matrix initial)
+  {
+    if (transition.nRows() != transition.nCols() || 
+        initial.nRows() != transition.nRows() ||
+        initial.nCols() != 1)
+      throw new RuntimeException();
+    // TODO: check rows sum to one
+  }
+
+
   /**
-   * Next, one should create a factory for the proposal defined above. Again, this is done by creating a 
-   * class only required to implement a single method, namely:
+   * Next, one should create a factory for the proposal defined above. This is done by creating a class 
+   * implementing ``dc.DCProposalFactory``. 
+   * 
+   * Here is an example of how to put it all together
    */
-  @Tutorial(showSource = false, nextStep = DCProcessorFactory.class)
-  public void instructionsContinued() {}
+  @Tutorial(showSource = true)
+  public void next() 
+  {
+    // Model: a finite state Markov chain
+  }
   
   // push maven!
   // add some basic doc in the separate repo on experiments multilevelSMC-experiments

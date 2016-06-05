@@ -123,7 +123,115 @@ they will be inserted in a hashtable), AND reproducible (i.e. the default implem
 depend on the memory location and will be different from machine to machine). A reasonable default implementation 
 is in ``multilevel.Node``. This will become generic type ``N`` in the following. 
 
-Next, the main step consists in providing code that proposes, i.e. merges sub-populations. 
+Next, the main step consists in providing code that proposes, i.e. merges sub-populations. This is done by 
+creating a class implementing ``dc.DCProposal``. This class will be responsible for both proposing, and 
+providing a LOG weight update for the proposal (including taking care of computing the ratio in step 2(c) 
+of Algorithm 2 in the arXiv pre-print). 
+
+Here is an example, based on a simple model where transitions are provided 
   
 
+```java
+public dc.DCProposal markovChainNaiveProposal(xlinear.Matrix,xlinear.Matrix)
+{
+    final int nStates = transition.nRows();
+    checkValidMarkovChain(transition, prior);
+    // Model: a finite state Markov chain, with..
+    //   transition, a n by n transition matrix
+    //   initial, a n by 1 initial distribution (i.e. prior on root)
+    // NB: this is just for illustration/testing purpose as one can do exact inference 
+    //     on this model
+    return new DCProposal<Integer>() { // In this example, particles are just integers
+      /**
+       * Propose a parent particle given the children. 
+       * All the randomness should be obtained via the provided random object.
+       * 
+       * @param random
+       * @param childrenParticles
+       * @return A pair containing the LOG weight update and the proposed particle
+       *    In the basic algorithm, this is given by gamma(x') / q(x'|x_1, .., x_C) / gamma(x_1) / .. / gamma(x_C)
+       *    Where x' is the tree, and x_1, .., x_C are the C children subtrees.
+       */
+      @Override
+      public Pair<Double, Integer> propose(Random random, List<Integer> childrenParticles)
+      {
+        // Naive proposal: uniform
+        Integer proposal = random.nextInt(nStates);
+        double weightUpdate = nStates; // 1 / q(x'|x), where q(x'|x) = 1/nStates
+        weightUpdate *= prior.get(proposal, 0); // prior(proposal) is part of gamma(x')
+        for (Integer childState : childrenParticles)
+        {
+          weightUpdate *= transition.get(proposal, childState); // transition(child | proposal) is part of gamma(x')
+          weightUpdate /= prior.get(proposal, 0); // everything else in gamma(x_c) gets cancelled with gamma(x')
+        }
+        return Pair.of(Math.log(weightUpdate), proposal);
+      }
+    };
+}
+```
+
+```java
+System.out.println(transition);
+// 2 x 2 dense matrix
+//       0         1       
+// 0 |   0.800000  0.200000
+// 1 |   0.200000  0.800000
+
+System.out.println(prior);
+// 2 x 1 dense matrix
+// 0       
+// 0 |   0.500000
+// 1 |   0.500000
+
+DCProposalFactory<Integer,Node> factory = new DCProposalFactory<Integer,Node>() 
+{
+  @Override
+  public DCProposal<Integer> build(
+      Random random, 
+      Node currentNode,
+      List<Node> childrenNodes)
+  {
+    if (childrenNodes.size() == 0)
+      // In this toy example, we set the leaves as observed and equal to 0
+      // This is modelled as a proposal that always returns state 0 if this 
+      // is a leaf.
+      return (rand, children) -> Pair.of(0.0, 0);
+    else
+      // Else, return the proposal defined above
+      return markovChainNaiveProposal(transition, prior);
+  }
+};
+
+// Topology, here a simple perfect binary tree of depth 3
+final DirectedTree<Node> tree = perfectBinaryTree(3);
+
+// Use DCOptions to set option, either programmatically as below, 
+// or see DDCMain for an example how to parse these options from command line.
+DCOptions options = new DCOptions();
+options.nThreadsPerNode = 2;
+
+// Prepare the simulation
+DistributedDC<Integer, Node> instance = DistributedDC.createInstance(options, factory, tree);
+
+// By default, the processor below is included, which prints and records in the result folder 
+// some basic statistics like ESS, logZ estimates, etc. I.e. the line below is not needed:
+//   instance.addProcessorFactory(new DefaultProcessorFactory<>());
+
+// You can implement ProcessorFactory and add it to the instance for more detailed 
+// processing of the particles and their weights. 
+
+// Perform the  sampling
+instance.start();
+```
+
+
+Next, one should create a factory for the proposal defined above. This is done by creating a class 
+implementing ``dc.DCProposalFactory``. 
+
+Here is an example of how to put it all together
+  
+
+```java
+// Model: a finite state Markov chain
+```
 
