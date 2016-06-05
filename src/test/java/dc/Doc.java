@@ -3,13 +3,18 @@ package dc;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.function.Function;
 
 import multilevel.Node;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.jgrapht.UndirectedGraph;
 import org.junit.Test;
 
 import bayonet.graphs.DirectedTree;
+import bayonet.graphs.GraphUtils;
+import bayonet.marginal.DiscreteFactorGraph;
+import bayonet.marginal.algo.SumProduct;
 import tutorialj.Tutorial;
 import xlinear.DenseMatrix;
 import xlinear.Matrix;
@@ -186,8 +191,11 @@ public class Doc
     };
   }
   
+  /**
+   * Here is an example of how to put it all together:
+   */
   @Test
-  @Tutorial(showSource = true)
+  @Tutorial(showSource = true, showLink = true, linkPrefix = "src/test/java")
   public void testMarkovChainExample()
   {
     System.out.println(transition);
@@ -214,7 +222,7 @@ public class Doc
           // In this toy example, we set the leaves as observed and equal to 0
           // This is modelled as a proposal that always returns state 0 if this 
           // is a leaf.
-          return (rand, children) -> Pair.of(0.0, 0);
+          return (rand, children) -> Pair.of(Math.log(prior.get(0, 0)), 0);
         else
           // Else, return the proposal defined above
           return markovChainNaiveProposal(transition, prior);
@@ -241,6 +249,11 @@ public class Doc
     
     // Perform the  sampling
     instance.start();
+    // timing: node=0, ESS=553.8295719155343, rESS=0.5538295719155343, logZ=-3.62525779010553, nWorkers=1, iterationProposalTime=1, globalTime=85
+    
+    // Compare to exact log normalization obtained by sum product:
+    System.out.println("exact = " + computeExactLogZ(transition, prior, tree, (node) -> 0));
+    // exact = -3.600962588536195
   }
   
   public static DirectedTree<Node> perfectBinaryTree(int depth)
@@ -263,6 +276,63 @@ public class Doc
     }
   }
   
+  private static <N> double computeExactLogZ(
+      DenseMatrix transition, 
+      DenseMatrix prior, 
+      DirectedTree<N> tree,
+      Function<N, Integer> observations) 
+  {
+    final int nStates = transition.nCols();
+    
+    // build topology
+    UndirectedGraph<N, ?> topology = GraphUtils.newUndirectedGraph();
+    topology.addVertex(tree.getRoot());
+    convertTopology(tree, tree.getRoot(), topology);
+    
+    // transition matrix
+    double [][] transitionMatrix = new double[nStates][nStates];
+    for (int s0 = 0; s0 < nStates; s0++)
+      for (int s1 = 0; s1 < nStates; s1++)
+        transitionMatrix[s0][s1] = transition.get(s0, s1);
+    
+    // build potentials
+    DiscreteFactorGraph<N> result = new DiscreteFactorGraph<>(topology);
+    for (N node : tree.getNodes())
+    {
+      if (tree.getRoot().equals(node))
+      {
+        double [][] pot = new double[1][nStates];
+        for (int state = 0; state < nStates; state++)
+          pot[0][state] = prior.get(state, 0);
+        result.setUnary(node, pot);
+      }
+      
+      if (tree.isLeaf(node))
+      {
+        double [][] pot = new double[1][nStates];
+        pot[0][observations.apply(node)] = 1.0;
+        result.setUnary(node, pot);
+      }
+      
+      for (N child : tree.getChildren(node))
+        result.setBinary(node, child, transitionMatrix);
+    }
+    
+    SumProduct<N> sp = new SumProduct<>(result);
+    
+    return sp.logNormalization();
+  }
+  
+  private static <N> void convertTopology(DirectedTree<N> tree, N node, UndirectedGraph<N, ?> topology)
+  {
+    for (N child : tree.getChildren(node))
+    {
+      topology.addVertex(child);
+      topology.addEdge(node, child);
+      convertTopology(tree, child, topology);
+    }
+  }
+  
   private DenseMatrix transition = MatrixOperations.denseCopy(new double [][] {
     {0.8, 0.2},
     {0.2, 0.8}
@@ -278,22 +348,7 @@ public class Doc
       throw new RuntimeException();
     // TODO: check rows sum to one
   }
-
-
-  /**
-   * Next, one should create a factory for the proposal defined above. This is done by creating a class 
-   * implementing ``dc.DCProposalFactory``. 
-   * 
-   * Here is an example of how to put it all together
-   */
-  @Tutorial(showSource = true)
-  public void next() 
-  {
-    // Model: a finite state Markov chain
-  }
   
   // push maven!
   // add some basic doc in the separate repo on experiments multilevelSMC-experiments
- 
-  
 }

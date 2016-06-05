@@ -170,6 +170,10 @@ public dc.DCProposal markovChainNaiveProposal(xlinear.Matrix,xlinear.Matrix)
 }
 ```
 
+
+Here is an example of how to put it all together:
+  
+
 ```java
 System.out.println(transition);
 // 2 x 2 dense matrix
@@ -195,7 +199,7 @@ DCProposalFactory<Integer,Node> factory = new DCProposalFactory<Integer,Node>()
       // In this toy example, we set the leaves as observed and equal to 0
       // This is modelled as a proposal that always returns state 0 if this 
       // is a leaf.
-      return (rand, children) -> Pair.of(0.0, 0);
+      return (rand, children) -> Pair.of(Math.log(prior.get(0, 0)), 0);
     else
       // Else, return the proposal defined above
       return markovChainNaiveProposal(transition, prior);
@@ -222,16 +226,11 @@ DistributedDC<Integer, Node> instance = DistributedDC.createInstance(options, fa
 
 // Perform the  sampling
 instance.start();
+// timing: node=0, ESS=553.8295719155343, rESS=0.5538295719155343, logZ=-3.62525779010553, nWorkers=1, iterationProposalTime=1, globalTime=85
+
+// Compare to exact log normalization obtained by sum product:
+System.out.println("exact = " + computeExactLogZ(transition, prior, tree, (node) -> 0));
+// exact = -3.600962588536195
 ```
-
-
-Next, one should create a factory for the proposal defined above. This is done by creating a class 
-implementing ``dc.DCProposalFactory``. 
-
-Here is an example of how to put it all together
-  
-
-```java
-// Model: a finite state Markov chain
-```
+<sub>From:[dc.Doc](src/test/java/dc/Doc.java)</sub>
 
