@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import prototype.MultiLevelMain;
+import prototype.DCPrototypeMain;
 import prototype.Node;
 import prototype.io.MultiLevelDataset;
 import prototype.mcmc.MultiLevelModel;
@@ -91,7 +91,7 @@ public class AnalyzeStanOuput implements Runnable
       }
       iteration++;
     }
-    MultiLevelMain.printMeanDensityStats(samples);
+    DCPrototypeMain.printMeanDensityStats(samples);
     
     File histogramsDir = Results.getFolderInResultFolder("histograms");
     

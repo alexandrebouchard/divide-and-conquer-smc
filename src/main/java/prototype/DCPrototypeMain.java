@@ -14,7 +14,7 @@ import prototype.mcmc.MultiLevelModel;
 import prototype.mcmc.MultiLevelBMTreeFactor.Initialization;
 import prototype.smc.DivideConquerMCAlgorithm;
 import prototype.smc.DivideConquerMCAlgorithm.LogDensityApprox;
-import prototype.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
+import prototype.smc.DivideConquerMCAlgorithm.DcSmcOptions;
 import prototype.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import prototype.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.coda.CodaParser;
@@ -39,14 +39,14 @@ import com.google.common.collect.Lists;
 
 
 
-public class MultiLevelMain implements Runnable
+public class DCPrototypeMain implements Runnable
 {
   @InputFile
   @Option(required = true) 
   public File inputData;
   
   @OptionSet(name = "dc") 
-  public MultiLevelDcSmcOptions dcsmcOption = new MultiLevelDcSmcOptions();
+  public DcSmcOptions dcsmcOption = new DcSmcOptions();
   
   @OptionSet(name = "model") 
   public MultiLevelModelOptions modelOptions = new MultiLevelModelOptions();
@@ -75,7 +75,7 @@ public class MultiLevelMain implements Runnable
 
   public static void main(String[] args)
   {
-    Mains.instrumentedRun(args, new MultiLevelMain());
+    Mains.instrumentedRun(args, new DCPrototypeMain());
   }
   
   @Override

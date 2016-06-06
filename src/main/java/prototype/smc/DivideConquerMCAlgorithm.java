@@ -39,7 +39,7 @@ public class DivideConquerMCAlgorithm
   private final MultiLevelDataset dataset;
   private final int nParticles;
   private final OutputManager output = new OutputManager();
-  private final MultiLevelDcSmcOptions options;
+  private final DcSmcOptions options;
   private final MultiLevelModelOptions modelOptions;
   
   public static class MultiLevelModelOptions
@@ -50,7 +50,7 @@ public class DivideConquerMCAlgorithm
     @Option public double variancePriorRateIfExponential = 1.0;
   }
   
-  public static class MultiLevelDcSmcOptions
+  public static class DcSmcOptions
   {
     @Option public int nParticles = 1000;
     @Option public int levelCutOffForOutput = 2;
@@ -68,7 +68,7 @@ public class DivideConquerMCAlgorithm
     return result;
   }
   
-  public DivideConquerMCAlgorithm(MultiLevelDataset dataset, MultiLevelDcSmcOptions options, MultiLevelModelOptions modelOptions)
+  public DivideConquerMCAlgorithm(MultiLevelDataset dataset, DcSmcOptions options, MultiLevelModelOptions modelOptions)
   {
     this.modelOptions = modelOptions;
     this.dataset = dataset;
