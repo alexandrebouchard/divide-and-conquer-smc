@@ -212,7 +212,10 @@ final DirectedTree<Node> tree = perfectBinaryTree(3);
 // Use DCOptions to set option, either programmatically as below, 
 // or see DDCMain for an example how to parse these options from command line.
 DCOptions options = new DCOptions();
-options.nThreadsPerNode = 2;
+options.nThreadsPerNode = 2; 
+options.masterRandomSeed = 31; // Note: given the seed, output is deterministic even if distributed and/or parallelized
+options.resamplingScheme = ResamplingScheme.STRATIFIED; // currently supported: STRATIFIED and MULTINOMIAL (default)
+options.relativeEssThreshold = 0.5; // only resample if relative ESS fall below this threshold
 
 // Prepare the simulation
 DistributedDC<Integer, Node> instance = DistributedDC.createInstance(options, factory, tree);
@@ -226,7 +229,7 @@ DistributedDC<Integer, Node> instance = DistributedDC.createInstance(options, fa
 
 // Perform the  sampling
 instance.start();
-// timing: node=0, ESS=553.8295719155343, rESS=0.5538295719155343, logZ=-3.62525779010553, nWorkers=1, iterationProposalTime=1, globalTime=85
+// timing: node=0, ESS=555.7945183537263, rESS=0.5557945183537263, logZ=-3.625455019937462, nWorkers=1, iterationProposalTime=1, globalTime=180
 
 // Compare to exact log normalization obtained by sum product:
 System.out.println("exact = " + computeExactLogZ(transition, prior, tree, (node) -> 0));
