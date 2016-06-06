@@ -5,12 +5,11 @@ import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
 
-import multilevel.Node;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.jgrapht.UndirectedGraph;
 import org.junit.Test;
 
+import prototype.Node;
 import bayonet.graphs.DirectedTree;
 import bayonet.graphs.GraphUtils;
 import bayonet.marginal.DiscreteFactorGraph;
@@ -58,19 +57,19 @@ public class Doc
    * }
    * 
    * dependencies {
-   *   compile group: 'ca.ubc.stat', name: 'multilevelSMC', version: '1.0.0'
+   *   compile group: 'ca.ubc.stat', name: 'divide-and-conquer-smc', version: '2.0.0'
    * }
    * ```
    * 
    * ### Compile using the provided gradle script
    * 
-   * - Check out the source ``git clone git@github.com:alexandrebouchard/multilevelSMC.git``
+   * - Check out the source ``git clone git@github.com:alexandrebouchard/divide-and-conquer-smc.git``
    * - Compile using ``gradle installApp``
-   * - Add the jars in ``build/install/multilevelSMC/lib/`` into your classpath
+   * - Add the jars in ``build/install/divide-and-conquer-smc/lib/`` into your classpath
    * 
    * ### Use in eclipse
    * 
-   * - Check out the source ``git clone git@github.com:alexandrebouchard/multilevelSMC.git``
+   * - Check out the source ``git clone git@github.com:alexandrebouchard/divide-and-conquer-smc.git``
    * - Type ``gradle eclipse`` from the root of the repository
    * - From eclipse:
    *   - ``Import`` in ``File`` menu
@@ -89,7 +88,7 @@ public class Doc
    * - Various output files are written in ``results/latest/``
    * 
    * The main interest of this implementation is for replicating the results in section 5.2 and 5.3 of 
-   * our pre-print. To do so, see the following [separate public repository](https://github.com/alexandrebouchard/multilevelSMC-experiments) 
+   * our pre-print. To do so, see the following [separate public repository](https://github.com/alexandrebouchard/divide-and-conquer-smc-experiments) 
    * which contains the exact sets of options used to run the experiments as well as the plotting scripts.
    * To extend DC SMC to other models, use the second implementation instead, described next.
    * 
@@ -144,7 +143,7 @@ public class Doc
    * and equals to ensure that each node in the tree be unique (i.e. not .equals(..) with any other node, 
    * they will be inserted in a hashtable), AND reproducible (i.e. the default implementation of hashcode will 
    * depend on the memory location and will be different from machine to machine). A reasonable default implementation 
-   * is in ``multilevel.Node``. This will become generic type ``N`` in the following. 
+   * is in ``prototype.Node``. This will become generic type ``N`` in the following. 
    * 
    * Next, the main step consists in providing code that proposes, i.e. merges sub-populations. This is done by 
    * creating a class implementing ``dc.DCProposal``. This class will be responsible for both proposing, and 
@@ -349,6 +348,5 @@ public class Doc
     // TODO: check rows sum to one
   }
   
-  // push maven!
   // add some basic doc in the separate repo on experiments multilevelSMC-experiments
 }

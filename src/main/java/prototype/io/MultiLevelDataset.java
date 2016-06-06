@@ -1,4 +1,4 @@
-package multilevel.io;
+package prototype.io;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import multilevel.Node;
+import prototype.Node;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

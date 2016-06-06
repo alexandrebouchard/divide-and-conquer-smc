@@ -1,4 +1,4 @@
-package multilevel;
+package prototype;
 
 import java.io.Serializable;
 import java.util.List;

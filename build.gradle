@@ -5,8 +5,8 @@ apply plugin: 'eclipse'
 uploadArchives {
   repositories.mavenDeployer {
     repository(url: "file:///Users/bouchard/Documents/web/public_html/maven/")
-    pom.version = "  2.0.0"
-    pom.artifactId = "multilevelSMC"
+    pom.version = "  3.0.0"
+    pom.artifactId = "divide-and-conquer-smc"
     pom.groupId = "ca.ubc.stat"
   }
 }
@@ -64,4 +64,4 @@ buildscript {
 }
 
 apply plugin:'application'  
-mainClassName = "multilevel.MultiLevelMain"
+mainClassName = "prototype.MultiLevelMain"

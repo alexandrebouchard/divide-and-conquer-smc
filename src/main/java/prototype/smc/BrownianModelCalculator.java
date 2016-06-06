@@ -1,4 +1,4 @@
-package multilevel.smc;
+package prototype.smc;
 
 import java.io.Serializable;
 import java.util.LinkedList;

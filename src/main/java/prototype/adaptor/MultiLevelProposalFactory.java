@@ -1,16 +1,15 @@
-package multilevel.adaptor;
+package prototype.adaptor;
 
 import java.io.File;
 import java.util.List;
 import java.util.Random;
 
-import multilevel.Node;
-import multilevel.io.Datum;
-import multilevel.io.MultiLevelDataset;
-import multilevel.smc.DivideConquerMCAlgorithm.Particle;
-
 import org.apache.commons.math3.distribution.BetaDistribution;
 
+import prototype.Node;
+import prototype.io.Datum;
+import prototype.io.MultiLevelDataset;
+import prototype.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.distributions.Random2RandomGenerator;
 import briefj.opt.Option;
 import dc.DCProposal;

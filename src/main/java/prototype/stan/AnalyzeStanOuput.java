@@ -1,4 +1,4 @@
-package multilevel.stan;
+package prototype.stan;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -7,13 +7,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import multilevel.MultiLevelMain;
-import multilevel.Node;
-import multilevel.io.MultiLevelDataset;
-import multilevel.mcmc.MultiLevelModel;
-import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
-import multilevel.smc.DivideConquerMCAlgorithm;
-import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
+import prototype.MultiLevelMain;
+import prototype.Node;
+import prototype.io.MultiLevelDataset;
+import prototype.mcmc.MultiLevelModel;
+import prototype.mcmc.MultiLevelBMTreeFactor.Initialization;
+import prototype.smc.DivideConquerMCAlgorithm;
+import prototype.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import au.com.bytecode.opencsv.CSVParser;
 import bayonet.rplot.PlotHistogram;
 import briefj.BriefIO;

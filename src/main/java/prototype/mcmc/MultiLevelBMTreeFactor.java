@@ -1,17 +1,18 @@
-package multilevel.mcmc;
+package prototype.mcmc;
 
 import java.util.List;
 import java.util.Map;
 
+import prototype.Node;
+import prototype.io.Datum;
+import prototype.io.MultiLevelDataset;
+import prototype.smc.BrownianModelCalculator;
+import prototype.smc.DivideConquerMCAlgorithm;
+import prototype.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
+import prototype.smc.DivideConquerMCAlgorithm.Particle;
+
 import com.beust.jcommander.internal.Lists;
 
-import multilevel.Node;
-import multilevel.io.Datum;
-import multilevel.io.MultiLevelDataset;
-import multilevel.smc.BrownianModelCalculator;
-import multilevel.smc.DivideConquerMCAlgorithm;
-import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
-import multilevel.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.distributions.Exponential;
 import bayonet.math.SpecialFunctions;
 import blang.annotations.FactorArgument;

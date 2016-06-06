@@ -1,4 +1,4 @@
-package multilevel.smc;
+package prototype.smc;
 
 import java.io.File;
 import java.io.Serializable;
@@ -9,14 +9,13 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
-import multilevel.Node;
-import multilevel.io.Datum;
-import multilevel.io.MultiLevelDataset;
-import multilevel.mcmc.MultiLevelBMTreeFactor;
-
 import org.apache.commons.math3.distribution.BetaDistribution;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
+import prototype.Node;
+import prototype.io.Datum;
+import prototype.io.MultiLevelDataset;
+import prototype.mcmc.MultiLevelBMTreeFactor;
 import bayonet.distributions.Exponential;
 import bayonet.distributions.Multinomial;
 import bayonet.distributions.Normal;

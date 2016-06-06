@@ -1,8 +1,8 @@
-package multilevel.stan;
+package prototype.stan;
 
 import java.io.File;
 
-import multilevel.io.MultiLevelDataset;
+import prototype.io.MultiLevelDataset;
 import binc.Command;
 import briefj.opt.Option;
 import briefj.run.Mains;

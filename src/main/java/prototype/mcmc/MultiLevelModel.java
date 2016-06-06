@@ -1,8 +1,8 @@
-package multilevel.mcmc;
+package prototype.mcmc;
 
-import multilevel.io.MultiLevelDataset;
-import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
-import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
+import prototype.io.MultiLevelDataset;
+import prototype.mcmc.MultiLevelBMTreeFactor.Initialization;
+import prototype.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
 import blang.annotations.DefineFactor;
 
 

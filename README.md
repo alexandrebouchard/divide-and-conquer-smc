@@ -35,19 +35,19 @@ repositories {
 }
 
 dependencies {
-  compile group: 'ca.ubc.stat', name: 'multilevelSMC', version: '1.0.0'
+  compile group: 'ca.ubc.stat', name: 'divide-and-conquer-smc', version: '2.0.0'
 }
 ```
 
 ### Compile using the provided gradle script
 
-- Check out the source ``git clone git@github.com:alexandrebouchard/multilevelSMC.git``
+- Check out the source ``git clone git@github.com:alexandrebouchard/divide-and-conquer-smc.git``
 - Compile using ``gradle installApp``
-- Add the jars in ``build/install/multilevelSMC/lib/`` into your classpath
+- Add the jars in ``build/install/divide-and-conquer-smc/lib/`` into your classpath
 
 ### Use in eclipse
 
-- Check out the source ``git clone git@github.com:alexandrebouchard/multilevelSMC.git``
+- Check out the source ``git clone git@github.com:alexandrebouchard/divide-and-conquer-smc.git``
 - Type ``gradle eclipse`` from the root of the repository
 - From eclipse:
   - ``Import`` in ``File`` menu
@@ -66,7 +66,7 @@ Running DC SMC on the binary emission hierarchical model (implementation 1)
 - Various output files are written in ``results/latest/``
 
 The main interest of this implementation is for replicating the results in section 5.2 and 5.3 of 
-our pre-print. To do so, see the following [separate public repository](https://github.com/alexandrebouchard/multilevelSMC-experiments) 
+our pre-print. To do so, see the following [separate public repository](https://github.com/alexandrebouchard/divide-and-conquer-smc-experiments) 
 which contains the exact sets of options used to run the experiments as well as the plotting scripts.
 To extend DC SMC to other models, use the second implementation instead, described next.
 
@@ -121,7 +121,7 @@ Second, build a class to encode nodes in the tree. The only requirement is that 
 and equals to ensure that each node in the tree be unique (i.e. not .equals(..) with any other node, 
 they will be inserted in a hashtable), AND reproducible (i.e. the default implementation of hashcode will 
 depend on the memory location and will be different from machine to machine). A reasonable default implementation 
-is in ``multilevel.Node``. This will become generic type ``N`` in the following. 
+is in ``prototype.Node``. This will become generic type ``N`` in the following. 
 
 Next, the main step consists in providing code that proposes, i.e. merges sub-populations. This is done by 
 creating a class implementing ``dc.DCProposal``. This class will be responsible for both proposing, and 

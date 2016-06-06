@@ -1,8 +1,8 @@
-package multilevel.adaptor;
+package prototype.adaptor;
 
 
-import multilevel.Node;
-import multilevel.smc.DivideConquerMCAlgorithm.Particle;
+import prototype.Node;
+import prototype.smc.DivideConquerMCAlgorithm.Particle;
 import dc.DCProcessor;
 import dc.DCProcessorFactory;
 import dc.DCProcessorFactoryContext;

@@ -1,4 +1,4 @@
-package multilevel.smc;
+package prototype.smc;
 
 import java.util.ArrayList;
 import java.util.Collections;

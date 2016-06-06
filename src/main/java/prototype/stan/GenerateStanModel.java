@@ -1,13 +1,14 @@
-package multilevel.stan;
+package prototype.stan;
 
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.Set;
 
+import prototype.Node;
+import prototype.io.MultiLevelDataset;
+
 import com.google.common.collect.Sets;
 
-import multilevel.Node;
-import multilevel.io.MultiLevelDataset;
 import binc.Command;
 import binc.Commands;
 import briefj.BriefIO;

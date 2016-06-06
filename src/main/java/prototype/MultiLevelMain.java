@@ -1,23 +1,22 @@
-  package multilevel;
+  package prototype;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
-import multilevel.io.MultiLevelDataset;
-import multilevel.mcmc.MultiLevelBMTreeFactor;
-import multilevel.mcmc.MultiLevelBMTreeFactor.Initialization;
-import multilevel.mcmc.MultiLevelModel;
-import multilevel.smc.DivideConquerMCAlgorithm;
-import multilevel.smc.DivideConquerMCAlgorithm.LogDensityApprox;
-import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
-import multilevel.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
-import multilevel.smc.DivideConquerMCAlgorithm.Particle;
-
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
+import prototype.io.MultiLevelDataset;
+import prototype.mcmc.MultiLevelBMTreeFactor;
+import prototype.mcmc.MultiLevelModel;
+import prototype.mcmc.MultiLevelBMTreeFactor.Initialization;
+import prototype.smc.DivideConquerMCAlgorithm;
+import prototype.smc.DivideConquerMCAlgorithm.LogDensityApprox;
+import prototype.smc.DivideConquerMCAlgorithm.MultiLevelDcSmcOptions;
+import prototype.smc.DivideConquerMCAlgorithm.MultiLevelModelOptions;
+import prototype.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.coda.CodaParser;
 import bayonet.coda.SimpleCodaPlots;
 import blang.MCMCAlgorithm;

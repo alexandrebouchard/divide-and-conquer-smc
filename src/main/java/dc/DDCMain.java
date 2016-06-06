@@ -1,9 +1,9 @@
 package dc;
 
-import multilevel.Node;
-import multilevel.adaptor.MultiLevelProcessorFactory;
-import multilevel.adaptor.MultiLevelProposalFactory;
-import multilevel.smc.DivideConquerMCAlgorithm.Particle;
+import prototype.Node;
+import prototype.adaptor.MultiLevelProcessorFactory;
+import prototype.adaptor.MultiLevelProposalFactory;
+import prototype.smc.DivideConquerMCAlgorithm.Particle;
 import briefj.opt.OptionSet;
 import briefj.run.Mains;
 

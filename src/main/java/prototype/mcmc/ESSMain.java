@@ -1,4 +1,4 @@
-package multilevel.mcmc;
+package prototype.mcmc;
 
 import java.io.File;
 import java.util.ArrayList;

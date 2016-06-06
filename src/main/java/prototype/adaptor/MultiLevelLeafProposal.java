@@ -1,4 +1,4 @@
-package multilevel.adaptor;
+package prototype.adaptor;
 
 import java.util.List;
 import java.util.Random;
@@ -6,11 +6,11 @@ import java.util.Random;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.math3.distribution.BetaDistribution;
 
+import prototype.Node;
+import prototype.smc.BrownianModelCalculator;
+import prototype.smc.DivideConquerMCAlgorithm;
+import prototype.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.math.SpecialFunctions;
-import multilevel.Node;
-import multilevel.smc.BrownianModelCalculator;
-import multilevel.smc.DivideConquerMCAlgorithm;
-import multilevel.smc.DivideConquerMCAlgorithm.Particle;
 import dc.DCProposal;
 
 

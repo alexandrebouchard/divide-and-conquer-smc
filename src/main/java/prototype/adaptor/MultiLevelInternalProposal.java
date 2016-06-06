@@ -1,14 +1,13 @@
-package multilevel.adaptor;
+package prototype.adaptor;
 
 import java.util.List;
 import java.util.Random;
 
-import multilevel.Node;
-import multilevel.smc.BrownianModelCalculator;
-import multilevel.smc.DivideConquerMCAlgorithm.Particle;
-
 import org.apache.commons.lang3.tuple.Pair;
 
+import prototype.Node;
+import prototype.smc.BrownianModelCalculator;
+import prototype.smc.DivideConquerMCAlgorithm.Particle;
 import bayonet.distributions.Exponential;
 
 import com.google.common.collect.Lists;

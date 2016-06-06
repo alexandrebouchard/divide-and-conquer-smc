@@ -1,16 +1,17 @@
-package multilevel.stan;
+package prototype.stan;
 
 import java.io.File;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import prototype.Node;
+import prototype.io.MultiLevelDataset;
+
 import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import multilevel.Node;
-import multilevel.io.MultiLevelDataset;
 import bayonet.rplot.PlotHistogram;
 import binc.Command;
 import briefj.BriefIO;
