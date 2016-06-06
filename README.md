@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-  compile group: 'ca.ubc.stat', name: 'divide-and-conquer-smc', version: '2.0.0'
+  compile group: 'ca.ubc.stat', name: 'divide-and-conquer-smc', version: '3.0.0'
 }
 ```
 
