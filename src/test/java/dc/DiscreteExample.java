@@ -7,6 +7,7 @@ import org.apache.commons.math3.stat.descriptive.SummaryStatistics;
 
 import bayonet.graphs.DirectedTree;
 import briefj.OutputManager;
+import briefj.opt.Option;
 import briefj.run.Mains;
 import briefj.run.Results;
 import prototype.Node;
@@ -16,6 +17,8 @@ import xlinear.DenseMatrix;
 
 public class DiscreteExample implements Runnable
 {
+  @Option 
+  public int depth = 5;
   
   public static void main(String [] args)
   {
@@ -31,14 +34,14 @@ public class DiscreteExample implements Runnable
     OutputManager output = new OutputManager();
     output.setOutputFolder(Results.getResultFolder());
     
-    final DirectedTree<Node> tree = perfectBinaryTree(3);
+    final DirectedTree<Node> tree = perfectBinaryTree(depth);
     final double exactLogZ = computeExactLogZ(transition, prior, tree, (node) -> 0);
     output.write("true-log-Z", "logZ", exactLogZ);
     DCProposalFactory<Integer, Node> proposalFactory = 
         Doc.markovChainNaiveProposalFactory(transition, prior);
     
     DCOptions options = new DCOptions();
-//    options.nThreadsPerNode = 4; 
+    options.nThreadsPerNode = 4; 
 //    options.nParticles = 1_000_000;
 //    options.masterRandomSeed = 31; // Note: given the seed, output is deterministic even if distributed and/or parallelized
 //    options.resamplingScheme = ResamplingScheme.MULTINOMIAL; // currently supported: STRATIFIED and MULTINOMIAL (default)
