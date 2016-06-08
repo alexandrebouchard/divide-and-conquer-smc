@@ -46,6 +46,11 @@ public final class DistributedDC<P, N>
   private boolean started = false;
   private boolean initializing = false;
   
+  /*
+   * Implementation note: we use a singleton so that multiple threads do not each create copies 
+   * of the populations. This has the limitation explained in the exception thrown by 
+   * createInstance() (see below).
+   */
   @SuppressWarnings("rawtypes")
   private static DistributedDC instance = null;
   
@@ -56,7 +61,10 @@ public final class DistributedDC<P, N>
       DirectedTree<N> tree)
   {
     if (instance != null)
-      throw new RuntimeException();
+      throw new RuntimeException("Limitation: the current implementation supports only one "
+          + "distributed DC computation at any given time in one JVM. Note that this DC "
+          + "computation can be multi-threaded (see DCOptions), however you could not say "
+          + "start two parallel DC computation on different trees. ");
     instance = new DistributedDC<P,N>(options, proposalFactory, tree);
     return instance;
   }
@@ -83,13 +91,22 @@ public final class DistributedDC<P, N>
     monitor();
   }
   
+  private ParticlePopulation<P> rootPopulation = null;
   private void monitor()
   {
     while (!populations.containsKey(tree.getRoot()))
       sleep();
     for (DCProcessorFactory<P, N> factory : processorFactories)
       factory.close();
-    cluster.shutdown();
+    // for convenience, save the root population locally
+    rootPopulation = populations.get(tree.getRoot());
+    cluster.shutdown(); // NB: this makes populations.get(.) inactive
+    instance = null;
+  }
+  
+  public ParticlePopulation<P> getRootPopulation() 
+  {
+    return rootPopulation;
   }
 
   private void setup()
@@ -142,7 +159,6 @@ public final class DistributedDC<P, N>
   {
     List<DCRecursionTask<P,N>> result = new ArrayList<>();
     populateInitialTasks(result, tree.getRoot(), options.maximumDistributionDepth);
-    System.out.println("nInitialTasks=" + result.size());
     return result;
   }
 
@@ -200,7 +216,6 @@ public final class DistributedDC<P, N>
   {
     Config result = new Config();
     String clusterName = createClusterName();
-    System.out.println("Cluster : " + clusterName);
     result.getGroupConfig().setName(clusterName);
     
     // set n threads in executors
@@ -222,7 +237,7 @@ public final class DistributedDC<P, N>
     executor.submit(dcRecursionTask);
   }
   
-  private static final long sleepTimeMillis = 1000;
+  private static final long sleepTimeMillis = 100;
   private static void sleep()
   {
     try { Thread.sleep(sleepTimeMillis); }

@@ -132,7 +132,7 @@ Here is an example, based on a simple model where transitions are provided
   
 
 ```java
-public dc.DCProposal markovChainNaiveProposal(xlinear.Matrix,xlinear.Matrix)
+public static dc.DCProposal markovChainNaiveProposal(xlinear.Matrix,xlinear.Matrix)
 {
     final int nStates = transition.nRows();
     checkValidMarkovChain(transition, prior);
@@ -171,6 +171,39 @@ public dc.DCProposal markovChainNaiveProposal(xlinear.Matrix,xlinear.Matrix)
 ```
 
 
+After building a DCProposal, we also need a DCProposalFactory, which instantiate one proposal for each 
+node of the tree and each thread and node. 
+
+This can be useful to produce different types of proposal depending on the part of the tree. For example, 
+in our simple example where we arbitrarily set all the observations to be the state 0, the proposals at the 
+leaves propose the value 0 deterministically, while the other nodes used the proposal defined above.
+  
+
+```java
+public static dc.DCProposalFactory markovChainNaiveProposalFactory(xlinear.Matrix,xlinear.Matrix)
+{
+    return new DCProposalFactory<Integer,Node>() 
+    {
+      @Override
+      public DCProposal<Integer> build(
+          Random random, 
+          Node currentNode,
+          List<Node> childrenNodes)
+      {
+        if (childrenNodes.size() == 0)
+          // In this toy example, we set the leaves as observed and equal to 0
+          // This is modelled as a proposal that always returns state 0 if this 
+          // is a leaf.
+          return (rand, children) -> Pair.of(Math.log(prior.get(0, 0)), 0); // NB: DCProposal is a FunctionalInterface
+        else
+          // Else, return the proposal defined above
+          return markovChainNaiveProposal(transition, prior);
+      }
+    };
+}
+```
+
+
 Here is an example of how to put it all together:
   
 
@@ -187,24 +220,7 @@ System.out.println(prior);
 // 0 |   0.500000
 // 1 |   0.500000
 
-DCProposalFactory<Integer,Node> factory = new DCProposalFactory<Integer,Node>() 
-{
-  @Override
-  public DCProposal<Integer> build(
-      Random random, 
-      Node currentNode,
-      List<Node> childrenNodes)
-  {
-    if (childrenNodes.size() == 0)
-      // In this toy example, we set the leaves as observed and equal to 0
-      // This is modelled as a proposal that always returns state 0 if this 
-      // is a leaf.
-      return (rand, children) -> Pair.of(Math.log(prior.get(0, 0)), 0);
-    else
-      // Else, return the proposal defined above
-      return markovChainNaiveProposal(transition, prior);
-  }
-};
+DCProposalFactory<Integer,Node> factory = markovChainNaiveProposalFactory(transition, prior);
 
 // Topology, here a simple perfect binary tree of depth 3
 final DirectedTree<Node> tree = perfectBinaryTree(3);
@@ -212,28 +228,31 @@ final DirectedTree<Node> tree = perfectBinaryTree(3);
 // Use DCOptions to set option, either programmatically as below, 
 // or see DDCMain for an example how to parse these options from command line.
 DCOptions options = new DCOptions();
-options.nThreadsPerNode = 2; 
+options.nThreadsPerNode = 4; 
+options.nParticles = 1_000_000;
 options.masterRandomSeed = 31; // Note: given the seed, output is deterministic even if distributed and/or parallelized
-options.resamplingScheme = ResamplingScheme.STRATIFIED; // currently supported: STRATIFIED and MULTINOMIAL (default)
+options.resamplingScheme = ResamplingScheme.MULTINOMIAL; // currently supported: STRATIFIED and MULTINOMIAL (default)
 options.relativeEssThreshold = 0.5; // only resample if relative ESS fall below this threshold
 
 // Prepare the simulation
-DistributedDC<Integer, Node> instance = DistributedDC.createInstance(options, factory, tree);
+DistributedDC<Integer, Node> ddc = DistributedDC.createInstance(options, factory, tree);
 
 // By default, the processor below is included, which prints and records in the result folder 
-// some basic statistics like ESS, logZ estimates, etc. I.e. the line below is not needed:
+// some basic statistics like ESS, logZ estimates, etc. I.e. the line below is not needed but 
+// examplifies how other custom processors would be added.
 //   instance.addProcessorFactory(new DefaultProcessorFactory<>());
 
-// You can implement ProcessorFactory and add it to the instance for more detailed 
-// processing of the particles and their weights. 
-
 // Perform the  sampling
-instance.start();
-// timing: node=0, ESS=555.7945183537263, rESS=0.5557945183537263, logZ=-3.625455019937462, nWorkers=1, iterationProposalTime=1, globalTime=180
+ddc.start();
+// timing: node=0, ESS=548622.6672945316, rESS=0.5486226672945316, logZ=-3.5950250310183574, nWorkers=1, iterationProposalTime=196, globalTime=3324
 
 // Compare to exact log normalization obtained by sum product:
-System.out.println("exact = " + computeExactLogZ(transition, prior, tree, (node) -> 0));
+final double exactLogZ = computeExactLogZ(transition, prior, tree, (node) -> 0);
+System.out.println("exact = " + exactLogZ);
 // exact = -3.600962588536195
+
+final double relativeError = Math.abs(exactLogZ - ddc.getRootPopulation().logNormEstimate())/exactLogZ;
+Assert.assertTrue(relativeError < 0.01);
 ```
 <sub>From:[dc.Doc](src/test/java/dc/Doc.java)</sub>
 
