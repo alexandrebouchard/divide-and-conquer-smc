@@ -1,5 +1,7 @@
 package dc;
 
+// As of commit 75367fd, tutorialj ceased working
+
 import static dc.TestUtilities.checkValidMarkovChain;
 import static dc.TestUtilities.computeExactLogZ;
 import static dc.TestUtilities.perfectBinaryTree;
@@ -35,7 +37,11 @@ public class Doc
    *    This second implementation also offers distributed and parallel computing functionalities.
    *    This second implementation is used in section 5.3 of the above pre-print.
    * 
-   * The paper explaining this method is under review. Please contact us if you would like to use this software.
+   * Both implementations are based on Algorithm 2 of our arXiv preprint and at the moment do not support the 
+   * extensions described in Section 4 of the preprint.
+   *  
+   * Since the paper explaining this method is under review, please contact us if you would like 
+   * to use this software.
    * 
    * 
    * Installation
