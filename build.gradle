@@ -4,7 +4,7 @@ apply plugin: 'eclipse'
 
 uploadArchives {
   repositories.mavenDeployer {
-    repository(url: "file:///Users/bouchard/Documents/web/public_html/maven/")
+    repository(url: "http://www.stat.ubc.ca/~bouchard/maven/")
     pom.version = "  3.0.0"
     pom.artifactId = "divide-and-conquer-smc"
     pom.groupId = "ca.ubc.stat"
@@ -21,14 +21,11 @@ repositories {
   mavenCentral()
   jcenter()
   maven {
-    url "file:///Users/bouchard/Documents/web/public_html/maven/"
-  }
-  maven {
     url "http://www.stat.ubc.ca/~bouchard/maven/"
   }
 }
 
-apply plugin: 'versions'
+apply plugin: 'com.github.ben-manes.versions'
 
 dependencies {
   compile group: 'com.google.guava', name: 'guava', version: '18.0'
@@ -56,10 +53,11 @@ buildscript {
   repositories {
     maven { url "https://github.com/ben-manes/gradle-versions-plugin/raw/mvnrepo" }
     mavenCentral()
+    jcenter()
   }
 
   dependencies {
-    classpath 'com.github.ben-manes:gradle-versions-plugin:0.5-beta-1'
+    classpath 'com.github.ben-manes:gradle-versions-plugin:0.16.0'
   }
 }
 
