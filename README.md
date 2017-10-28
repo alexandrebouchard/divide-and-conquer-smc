@@ -5,7 +5,7 @@ Summary
 -------
 
 Two implementations of Divide and Conquer Sequential Monte Carlo (DC SMC), described in our 
-[arXiv preprint.](http://arxiv.org/abs/1406.4993)
+[Journal of Computational Statistics and Graphics 2017 paper.](http://arxiv.org/abs/1406.4993)
 
 1. One implementation has a specific model hard coded in it, namely the hierarchical model 
    with a binomial emission model used in section 5.2 of the above pre-print.
@@ -16,7 +16,14 @@ Two implementations of Divide and Conquer Sequential Monte Carlo (DC SMC), descr
 Both implementations are based on Algorithm 2 of our arXiv preprint and at the moment do not support the 
 extensions described in Section 4 of the preprint.
 
-The paper explaining this method is under review. Please contact us if you would like to use this software.
+Please cite the following paper:
+
+```
+Fredrik Lindsten,  Adam M. Johansen,  Christian A. Naesseth,  
+Bonnie Kirkpatrick,  Thomas B. Schon,  John Aston, 
+Alexandre Bouchard-Côté. (2017) Divide-and-conquer with sequential Monte Carlo.
+Journal of Computational Statistics and Graphics 26:445–458.
+```
 
 
 Installation
