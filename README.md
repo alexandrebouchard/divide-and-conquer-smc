@@ -52,13 +52,13 @@ dependencies {
 ### Compile using the provided gradle script
 
 - Check out the source ``git clone git@github.com:alexandrebouchard/divide-and-conquer-smc.git``
-- Compile using ``gradle installApp``
+- Compile using ``./gradlew installDist``
 - Add the jars in ``build/install/divide-and-conquer-smc/lib/`` into your classpath
 
 ### Use in eclipse
 
 - Check out the source ``git clone git@github.com:alexandrebouchard/divide-and-conquer-smc.git``
-- Type ``gradle eclipse`` from the root of the repository
+- Type ``./gradlew eclipse`` from the root of the repository
 - From eclipse:
   - ``Import`` in ``File`` menu
   - ``Import existing projects into workspace``
@@ -69,7 +69,7 @@ dependencies {
 Running DC SMC on the binary emission hierarchical model (implementation 1)
 ---------------------------------------------------------------------------
 
-- Assuming you have checked out the repo and used ``gradle installApp`` successfully
+- Assuming you have checked out the repo and used ``./gradlew installDist`` successfully
 - Download and prepare the data by typing ``scripts/prepare-data.sh`` from the root of the repository (requires wget). This writes the preprocessed data in ``data/preprocessedNYSData.csv``
 - Run the software using ``scripts/run-simple.sh -inputData data/preprocessedNYSData.csv -nParticles 1000``. 
 - Note: for the plots to work, you need to have R in your PATH variable (more precisely, Rscript) 
@@ -84,7 +84,7 @@ To extend DC SMC to other models, use the second implementation instead, describ
 Running parallel and distributed DC SMC on the binary emission hierarchical model (implementation 2)
 ----------------------------------------------------------------------------------------------------
 
-- Assuming you have checked out the repo and used ``gradle installApp`` successfully
+- Assuming you have checked out the repo and used ``./gradlew installDist`` successfully
 - Download and prepare the data by typing ``scripts/prepare-data.sh`` from the root of the repository (requires wget). This writes the preprocessed data in ``data/preprocessedNYSData.csv``
 - Run the software using ``scripts/run-distributed.sh -dataFile data/preprocessedNYSData.csv``
 
